@@ -26,6 +26,7 @@ class UnetTransferSulciLabelling(object):
         self.hemi = hemi
         self.model = None
 
+        #dict_sulci / sslist
         self.dict_bck2 = dict_bck2
         self.dict_names = dict_names
         self.sulci_side_list = sulci_side_list
@@ -40,11 +41,13 @@ class UnetTransferSulciLabelling(object):
             self.sslist = None
         self.background = -1
 
+        #working path
         if working_path is None :
             self.working_path = os.getcwd()
         else:
             self.working_path = working_path
 
+        #results
         self.results = {'lr': [],
                         'momentum': [],
                         'batch_size': [],
@@ -104,6 +107,8 @@ class UnetTransferSulciLabelling(object):
         num_channel = 1
         num_filter = 64
 
+        torch.manual_seed(42)
+
         if self.hemi == 'L':
             model_file = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_left.mdsm'
             with open(
@@ -129,11 +134,7 @@ class UnetTransferSulciLabelling(object):
     def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, batch_size=1, save_results=True):
 
         #Error
-        if self.model is None :
-            print('Error : load model before learning')
-            return 1
-
-        if self.sulci_side_list is None or self.dict_bck2 is None or self.dict_bck2 is None :
+        if self.sulci_side_list is None or self.dict_bck2 is None or self.dict_bck2 is None:
             print('Error : extract data from graphs before leearning')
             return 1
 
@@ -238,8 +239,8 @@ class UnetTransferSulciLabelling(object):
                         self.results['epoch_loss'].append([epoch_loss])
                         self.results['epoch_acc'].append([epoch_acc])
                     else:
-                        self.results['epoch_loss'][num_training].append([epoch_loss])
-                        self.results['epoch_acc'][num_training].append([epoch_acc])
+                        self.results['epoch_loss'][num_training].append(epoch_loss)
+                        self.results['epoch_acc'][num_training].append(epoch_acc)
 
                 # deep copy the model
                 if phase == 'val' and epoch_acc > best_acc:
@@ -263,7 +264,7 @@ class UnetTransferSulciLabelling(object):
         self.model.load_state_dict(best_model_wts)
 
     def save_data(self):
-        path_to_save_data = self.working_path  + '/data.json'
+        path_to_save_data = self.working_path + '/data.json'
         data = {'dict_bck2': self.dict_bck2,
                 'dict_names': self.dict_names,
                 'sulci_side_list': self.sulci_side_list}
