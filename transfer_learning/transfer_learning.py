@@ -291,4 +291,4 @@ class UnetTransferSulciLabelling(object):
                         'epoch_acc': [],
                         'best_acc': [],
                         'best_epoch': [],
-                        'num_epoch':[]}
+                        'num_epoch': []}

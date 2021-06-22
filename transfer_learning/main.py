@@ -11,6 +11,8 @@ with open('parameters.json', 'r') as f:
 
 working_path = parameters['working_path']
 
+cuda = parameters['cuda']
+
 cohort_name = parameters['cohort_name']
 hemi = parameters['hemi']
 path_to_cohort = parameters['path_to_cohort']
@@ -46,12 +48,12 @@ if __name__ == '__main__':
 
     #Récupération du modèle
     if len(data) == 0:
-        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, working_path=working_path)
+        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path)
         method.extract_data_from_graphs()
         method.save_data()
 
     else:
-        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, working_path=working_path,
+        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path,
                                         dict_names=data['dict_names'], dict_bck2=data['dict_bck2'], sulci_side_list=data['sulci_side_list'])
 
 
