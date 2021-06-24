@@ -4,6 +4,7 @@ import copy
 import time
 import os
 import sigraph
+import pandas as pd
 
 import torch
 import torch.nn as nn
@@ -15,6 +16,7 @@ from soma import aims
 from deepsulci.deeptools.dataset import extract_data, SulciDataset
 from deepsulci.deeptools.models import UNet3D
 from deepsulci.sulci_labeling.analyse.stats import esi_score
+from deepsulci.method.cutting import cutting
 
 
 class UnetTrainingSulciLabelling(object):
@@ -56,6 +58,7 @@ class UnetTrainingSulciLabelling(object):
                         'best_acc': [],
                         'best_epoch': [],
                         'num_epoch':[]}
+        self.dict_scores = {}
 
         # translation file
         if os.path.exists(translation_file):
@@ -236,6 +239,101 @@ class UnetTrainingSulciLabelling(object):
 
         # load best model weights
         self.model.load_state_dict(best_model_wts)
+
+    def test_thresholds(self, gfile_list_test, gfile_list_notcut_test, threshold_range, save_results=True):
+        print('test thresholds')
+
+        for th in threshold_range:
+            if th not in self.dict_scores.keys():
+                self.dict_scores[th] = []
+
+        for gfile, gfile_notcut in zip(gfile_list_test, gfile_list_notcut_test):
+            # extract data
+            graph = aims.read(gfile)
+            if trfile is not None:
+                self.flt.translate(graph)
+            data = extract_data(graph)
+            nbck = np.asarray(data['nbck'])
+            bck2 = np.asarray(data['bck2'])
+            names = np.asarray(data['names'])
+
+            graph_notcut = aims.read(gfile_notcut)
+            if trfile is not None:
+                self.flt.translate(graph_notcut)
+            data_notcut = extract_data(graph_notcut)
+            nbck_notcut = np.asarray(data_notcut['nbck'])
+            vert_notcut = np.asarray(data_notcut['vert'])
+
+            # compute labeling
+            _, _, yscores = self.labeling(gfile, bck2, names)
+
+            # organize dataframes
+            df = pd.DataFrame()
+            df['point_x'] = nbck[:, 0]
+            df['point_y'] = nbck[:, 1]
+            df['point_z'] = nbck[:, 2]
+            df.sort_values(by=['point_x', 'point_y', 'point_z'],
+                           inplace=True)
+
+            df_notcut = pd.DataFrame()
+            nbck_notcut = np.asarray(nbck_notcut)
+            df_notcut['vert'] = vert_notcut
+            df_notcut['point_x'] = nbck_notcut[:, 0]
+            df_notcut['point_y'] = nbck_notcut[:, 1]
+            df_notcut['point_z'] = nbck_notcut[:, 2]
+            df_notcut.sort_values(by=['point_x', 'point_y', 'point_z'],
+                                  inplace=True)
+            if (len(df) != len(df_notcut)):
+                print()
+                print('ERROR no matches between %s and %s' % (
+                    gfile, gfile_notcut))
+                print('--- Files ignored to fix the threshold')
+                print()
+            else:
+                df['vert_notcut'] = list(df_notcut['vert'])
+                df.sort_index(inplace=True)
+                for threshold in threshold_range:
+                    ypred_cut = cutting(yscores, df['vert_notcut'], bck2, threshold)
+                    ypred_cut = [self.sulci_side_list[y] for y in ypred_cut]
+
+                    self.dict_scores[threshold].append((1 - esi_score(
+                        names, ypred_cut, self.sslist)) * 100)
+
+        if save_results:
+            self.results['threshold_scores'] = self.dict_scores
+
+
+    def labeling(self, gfile):
+        print('Labeling', gfile)
+
+        self.model = self.model.to(self.device)
+        self.model.eval()
+        bck2 = self.dict_bck2[gfile]
+        names = self.dict_names[gfile]
+        dataset = SulciDataset(
+            [gfile], self.dict_sulci, train=False,
+            translation_file=self.translation_file,
+            dict_bck2={gfile: bck2}, dict_names={gfile: names})
+        data = dataset[0]
+
+        with torch.no_grad():
+            inputs, labels = data
+            inputs = inputs.unsqueeze(0)
+            inputs = inputs.to(self.device)
+            outputs = self.model(inputs)
+            if bck2 is None:
+                bck_T = np.where(np.asarray(labels) != self.background)
+            else:
+                tr = np.min(bck2, axis=0)
+                bck_T = np.transpose(bck2 - tr)
+            _, preds = torch.max(outputs.data, 1)
+            ypred = preds[0][bck_T[0], bck_T[1], bck_T[2]].tolist()
+            ytrue = labels[bck_T[0], bck_T[1], bck_T[2]].tolist()
+            yscores = outputs[0][:, bck_T[0], bck_T[1],
+                                 bck_T[2]].tolist()
+            yscores = np.transpose(yscores)
+
+        return ytrue, ypred, yscores
 
     def save_data(self):
         path_to_save_data = self.working_path + '/data.json'
