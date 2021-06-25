@@ -16,7 +16,7 @@ from soma import aims
 from deepsulci.deeptools.dataset import extract_data, SulciDataset
 from deepsulci.deeptools.models import UNet3D
 from deepsulci.sulci_labeling.analyse.stats import esi_score
-from deepsulci.method.cutting import cutting
+from deepsulci.sulci_labeling.method.cutting import cutting
 
 
 class UnetTrainingSulciLabelling(object):
@@ -242,7 +242,7 @@ class UnetTrainingSulciLabelling(object):
 
     def test_thresholds(self, gfile_list_test, gfile_list_notcut_test, threshold_range, save_results=True):
         print('test thresholds')
-
+        since = time.time()
         for th in threshold_range:
             if th not in self.dict_scores.keys():
                 self.dict_scores[th] = []
@@ -250,7 +250,7 @@ class UnetTrainingSulciLabelling(object):
         for gfile, gfile_notcut in zip(gfile_list_test, gfile_list_notcut_test):
             # extract data
             graph = aims.read(gfile)
-            if trfile is not None:
+            if self.trfile is not None:
                 self.flt.translate(graph)
             data = extract_data(graph)
             nbck = np.asarray(data['nbck'])
@@ -258,14 +258,14 @@ class UnetTrainingSulciLabelling(object):
             names = np.asarray(data['names'])
 
             graph_notcut = aims.read(gfile_notcut)
-            if trfile is not None:
+            if self.trfile is not None:
                 self.flt.translate(graph_notcut)
             data_notcut = extract_data(graph_notcut)
             nbck_notcut = np.asarray(data_notcut['nbck'])
             vert_notcut = np.asarray(data_notcut['vert'])
 
             # compute labeling
-            _, _, yscores = self.labeling(gfile, bck2, names)
+            _, _, yscores = self.labeling(gfile)
 
             # organize dataframes
             df = pd.DataFrame()
@@ -302,6 +302,10 @@ class UnetTrainingSulciLabelling(object):
         if save_results:
             self.results['threshold_scores'] = self.dict_scores
 
+        time_elapsed = time.time() - since
+        print('Cutting complete in {:.0f}m {:.0f}s'.format(
+            time_elapsed // 60, time_elapsed % 60))
+
 
     def labeling(self, gfile):
         print('Labeling', gfile)
@@ -312,7 +316,7 @@ class UnetTrainingSulciLabelling(object):
         names = self.dict_names[gfile]
         dataset = SulciDataset(
             [gfile], self.dict_sulci, train=False,
-            translation_file=self.translation_file,
+            translation_file=self.trfile,
             dict_bck2={gfile: bck2}, dict_names={gfile: names})
         data = dataset[0]
 
