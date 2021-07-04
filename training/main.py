@@ -18,17 +18,18 @@ cohort_name = parameters['cohort_name']
 print('cohort: ', cohort_name)
 hemi = parameters['hemi']
 print('hemi: ', hemi)
-path_to_cohort = parameters['path_to_cohort']
 translation_file = parameters['translation_file']
 
 batch_size = parameters['batch_size']
 
 lr = parameters['lr']
 momentum = parameters['momentum']
-th_range = [150, 250] #[50, 100, 150, 200, 250, 300]
+th_range = parameters['th_range']
 
 n_cvinner = parameters['n_cvinner']
 n_epochs = parameters['n_epochs']
+
+model_name = parameters['model_name']
 
 if __name__ == '__main__':
 
@@ -36,7 +37,7 @@ if __name__ == '__main__':
     print('\nLoading Data\n')
 
     #Récupération des graphes
-    with open(os.path.join(path_to_cohort, 'cohort-' + cohort_name + '_hemi-' + hemi + '.json'), 'r') as f:
+    with open(os.path.join('/cohorts/cohort-' + cohort_name + '_hemi-' + hemi + '.json'), 'r') as f:
         cohort = json.load(f)
     graphs = []
     notcut_graphs = []
@@ -62,12 +63,12 @@ if __name__ == '__main__':
     #Récupération du modèle
     print('\nLoading network\n')
     if len(data) == 0:
-        method = UnetTrainingSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path)
+        method = UnetTrainingSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, model_name=model_name)
         method.extract_data_from_graphs()
         method.save_data()
 
     else:
-        method = UnetTrainingSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path,
+        method = UnetTrainingSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, model_name=model_name,
                                         dict_names=data['dict_names'], dict_bck2=data['dict_bck2'], sulci_side_list=data['sulci_side_list'])
 
 
@@ -104,7 +105,7 @@ if __name__ == '__main__':
 
     print('Cross Validation took %i s.' % (time.time() - start_time))
 
-    with open(working_path+'/results.json', 'r') as f:
+    with open(working_path+'/results/' + model_name + '.json', 'r') as f:
         results = json.load(f)
 
     mean_acc = np.mean(results['best_acc'])

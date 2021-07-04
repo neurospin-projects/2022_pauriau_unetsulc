@@ -21,7 +21,7 @@ from deepsulci.sulci_labeling.method.cutting import cutting
 
 class UnetTrainingSulciLabelling(object):
 
-    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None,
+    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None, model_name=None,
                  dict_names=None, dict_bck2=None, sulci_side_list=None):
 
         self.graphs = graphs
@@ -44,10 +44,15 @@ class UnetTrainingSulciLabelling(object):
         self.background = -1
 
         #working path
-        if working_path is None :
+        if working_path is None:
             self.working_path = os.getcwd()
         else:
             self.working_path = working_path
+        if model_name is None:
+            self.model_name = 'unknown_model'
+        else:
+            self.model_name = model_name
+
 
         #results
         self.results = {'lr': [],
@@ -340,7 +345,7 @@ class UnetTrainingSulciLabelling(object):
         return ytrue, ypred, yscores
 
     def save_data(self):
-        path_to_save_data = self.working_path + '/data.json'
+        path_to_save_data = self.working_path + '/data/' + self.model_name + '.json'
         data = {'dict_bck2': self.dict_bck2,
                 'dict_names': self.dict_names,
                 'sulci_side_list': self.sulci_side_list}
@@ -349,12 +354,12 @@ class UnetTrainingSulciLabelling(object):
         print('Data saved')
 
     def save_model(self):
-        path_to_save_model = self.working_path + '/model'
+        path_to_save_model = self.working_path + '/models/' + self.model_name
         torch.save(self.model.state_dict(), path_to_save_model)
         print('Model saved')
 
     def save_results(self):
-        path_to_save_results = self.working_path + '/results.json'
+        path_to_save_results = self.working_path + '/results/' + self.model_name + '.json'
         with open(path_to_save_results, 'w') as f:
             json.dump(self.results, f)
         print('Results saved')
