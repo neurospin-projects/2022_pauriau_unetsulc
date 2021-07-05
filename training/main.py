@@ -37,7 +37,7 @@ if __name__ == '__main__':
     print('\nLoading Data\n')
 
     #Récupération des graphes
-    with open(os.path.join('/cohorts/cohort-' + cohort_name + '_hemi-' + hemi + '.json'), 'r') as f:
+    with open(os.path.join(working_path + '/cohorts/cohort-' + cohort_name + '_hemi-' + hemi + '.json'), 'r') as f:
         cohort = json.load(f)
     graphs = []
     notcut_graphs = []
