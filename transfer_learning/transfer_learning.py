@@ -19,7 +19,7 @@ from deepsulci.sulci_labeling.analyse.stats import esi_score
 
 class UnetTransferSulciLabelling(object):
 
-    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None,
+    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None, model_name=None,
                  dict_names=None, dict_bck2=None, sulci_side_list=None):
 
         self.graphs = graphs
@@ -46,6 +46,11 @@ class UnetTransferSulciLabelling(object):
             self.working_path = os.getcwd()
         else:
             self.working_path = working_path
+        #model name
+        if model_name is None:
+            self.model_name = 'unknown_model'
+        else:
+            self.model_name = model_name
 
         #results
         self.results = {'lr': [],
@@ -62,6 +67,7 @@ class UnetTransferSulciLabelling(object):
             self.flt = sigraph.FoldLabelsTranslator()
             self.flt.readLabels(translation_file)
             self.trfile = translation_file
+            print('Translation file loaded')
         else:
             self.trfile = None
             print('Translation file not found.')
@@ -264,7 +270,8 @@ class UnetTransferSulciLabelling(object):
         self.model.load_state_dict(best_model_wts)
 
     def save_data(self):
-        path_to_save_data = self.working_path + '/data.json'
+        os.makedirs(self.working_path + '/data', exist_ok=True)
+        path_to_save_data = self.working_path + '/data/' + self.model_name + '.json'
         data = {'dict_bck2': self.dict_bck2,
                 'dict_names': self.dict_names,
                 'sulci_side_list': self.sulci_side_list}
@@ -273,12 +280,14 @@ class UnetTransferSulciLabelling(object):
         print('Data saved')
 
     def save_model(self):
-        path_to_save_model = self.working_path + '/model'
+        os.makedirs(self.working_path + '/models', exist_ok=True)
+        path_to_save_model = self.working_path + '/models/' + self.model_name
         torch.save(self.model.state_dict(), path_to_save_model)
         print('Model saved')
 
     def save_results(self):
-        path_to_save_results = self.working_path + '/results.json'
+        os.makedirs(self.working_path + '/results', exist_ok=True)
+        path_to_save_results = self.working_path + '/results/' + self.model_name + '.json'
         with open(path_to_save_results, 'w') as f:
             json.dump(self.results, f)
         print('Results saved')
@@ -291,4 +300,5 @@ class UnetTransferSulciLabelling(object):
                         'epoch_acc': [],
                         'best_acc': [],
                         'best_epoch': [],
-                        'num_epoch': []}
+                        'num_epoch': []
+                        }
