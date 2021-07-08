@@ -345,6 +345,7 @@ class UnetTrainingSulciLabelling(object):
         return ytrue, ypred, yscores
 
     def save_data(self):
+        os.makedirs(self.working_path + '/data', exist_ok=True)
         path_to_save_data = self.working_path + '/data/' + self.model_name + '.json'
         data = {'dict_bck2': self.dict_bck2,
                 'dict_names': self.dict_names,
@@ -354,11 +355,13 @@ class UnetTrainingSulciLabelling(object):
         print('Data saved')
 
     def save_model(self):
+        os.makedirs(self.working_path + '/models', exist_ok=True)
         path_to_save_model = self.working_path + '/models/' + self.model_name
         torch.save(self.model.state_dict(), path_to_save_model)
         print('Model saved')
 
     def save_results(self):
+        os.makedirs(self.working_path + '/results', exist_ok=True)
         path_to_save_results = self.working_path + '/results/' + self.model_name + '.json'
         with open(path_to_save_results, 'w') as f:
             json.dump(self.results, f)
