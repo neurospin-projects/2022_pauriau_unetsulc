@@ -70,6 +70,7 @@ class UnetTrainingSulciLabelling(object):
             self.flt = sigraph.FoldLabelsTranslator()
             self.flt.readLabels(translation_file)
             self.trfile = translation_file
+            print('Translation file loaded')
         else:
             self.trfile = None
             print('Translation file not found.')
@@ -147,6 +148,7 @@ class UnetTrainingSulciLabelling(object):
         trainloader = torch.utils.data.DataLoader(
             traindataset, batch_size=batch_size,
             shuffle=False, num_workers=0)
+
 
         # # MODEL # #
         self.load_model()
