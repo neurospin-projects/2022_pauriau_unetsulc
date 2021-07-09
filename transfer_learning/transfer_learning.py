@@ -269,6 +269,38 @@ class UnetTransferSulciLabelling(object):
         # load best model weights
         self.model.load_state_dict(best_model_wts)
 
+    def labeling(self, gfile):
+        print('Labeling', gfile)
+
+        self.model = self.model.to(self.device)
+        self.model.eval()
+        bck2 = self.dict_bck2[gfile]
+        names = self.dict_names[gfile]
+        dataset = SulciDataset(
+            [gfile], self.dict_sulci, train=False,
+            translation_file=self.trfile,
+            dict_bck2={gfile: bck2}, dict_names={gfile: names})
+        data = dataset[0]
+
+        with torch.no_grad():
+            inputs, labels = data
+            inputs = inputs.unsqueeze(0)
+            inputs = inputs.to(self.device)
+            outputs = self.model(inputs)
+            if bck2 is None:
+                bck_T = np.where(np.asarray(labels) != self.background)
+            else:
+                tr = np.min(bck2, axis=0)
+                bck_T = np.transpose(bck2 - tr)
+            _, preds = torch.max(outputs.data, 1)
+            ypred = preds[0][bck_T[0], bck_T[1], bck_T[2]].tolist()
+            ytrue = labels[bck_T[0], bck_T[1], bck_T[2]].tolist()
+            yscores = outputs[0][:, bck_T[0], bck_T[1],
+                                 bck_T[2]].tolist()
+            yscores = np.transpose(yscores)
+
+        return ytrue, ypred, yscores
+
     def save_data(self):
         os.makedirs(self.working_path + '/data', exist_ok=True)
         path_to_save_data = self.working_path + '/data/' + self.model_name + '.json'

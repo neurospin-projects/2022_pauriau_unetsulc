@@ -103,7 +103,8 @@ if __name__ == '__main__':
     method.save_results()
     method.save_model()
 
-    print('Cross Validation took %i s.' % (time.time() - start_time))
+    cv_time = time.time() - start_time
+    print('Cross Validation complete in {:0.f}h {:.0f}m {:.0f}s'.format(cv_time // 3600, (cv_time%3600)//60, (cv_time%3600)%60))
 
     with open(working_path+'/results/' + model_name + '.json', 'r') as f:
         results = json.load(f)
