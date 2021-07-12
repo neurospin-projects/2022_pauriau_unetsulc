@@ -59,8 +59,10 @@ class UnetTrainingSulciLabelling(object):
         self.results = {'lr': [],
                         'momentum': [],
                         'batch_size': [],
-                        'epoch_loss': [],
-                        'epoch_acc': [],
+                        'epoch_loss_val': [],
+                        'epoch_loss_train': [],
+                        'epoch_acc_val': [],
+                        'epoch_acc_train': [],
                         'best_acc': [],
                         'best_epoch': [],
                         'num_epoch': []
@@ -165,7 +167,7 @@ class UnetTrainingSulciLabelling(object):
 
             log_dir = os.path.join(self.working_path + '/tensorboard/' + self.model_name)
             os.makedirs(log_dir, exist_ok=True)
-            writer = SummaryWriter(log_dir=log_dir+str(num_training))#, comment=)
+            writer = SummaryWriter(log_dir=log_dir+'/cv_'+str(num_training)) #, comment=)
 
         # # TRAINING # #
         print('training...')
@@ -226,13 +228,12 @@ class UnetTrainingSulciLabelling(object):
                 if save_results:
                     writer.add_scalar('Loss/'+phase, epoch_loss, epoch)
                     writer.add_scalar('Accuracy/'+phase, epoch_acc, epoch)
-                    if phase == 'val':
-                        if epoch == 0:
-                            self.results['epoch_loss'].append([epoch_loss])
-                            self.results['epoch_acc'].append([epoch_acc])
-                        else:
-                            self.results['epoch_loss'][num_training].append(epoch_loss)
-                            self.results['epoch_acc'][num_training].append(epoch_acc)
+                    if epoch == 0:
+                        self.results['epoch_loss_'+phase].append([epoch_loss])
+                        self.results['epoch_acc_'+phase].append([epoch_acc])
+                    else:
+                        self.results['epoch_loss_'+phase][num_training].append(epoch_loss)
+                        self.results['epoch_acc_'+phase][num_training].append(epoch_acc)
 
                 # deep copy the model
                 if phase == 'val' and epoch_acc > best_acc:
@@ -382,8 +383,10 @@ class UnetTrainingSulciLabelling(object):
         self.results = {'lr': [],
                         'momentum': [],
                         'batch_size': [],
-                        'epoch_loss': [],
-                        'epoch_acc': [],
+                        'epoch_loss_val': [],
+                        'epoch_acc_val': [],
+                        'epoch_loss_train': [],
+                        'epoch_acc_train': [],
                         'best_acc': [],
                         'best_epoch': [],
                         'num_epoch':[]}
