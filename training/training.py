@@ -323,7 +323,6 @@ class UnetTrainingSulciLabelling(object):
         print('Cutting complete in {:.0f}m {:.0f}s'.format(
             time_elapsed // 60, time_elapsed % 60))
 
-
     def labeling(self, gfile):
         print('Labeling', gfile)
 
@@ -389,4 +388,12 @@ class UnetTrainingSulciLabelling(object):
                         'epoch_acc_train': [],
                         'best_acc': [],
                         'best_epoch': [],
-                        'num_epoch':[]}
+                        'num_epoch': [],
+                        'threshold_scores': []
+                        }
+
+    def load_saved_model(self, model_file):
+        self.load_model()
+        self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
+        self.model.to(self.device)
+        print("Model Loaded !")
