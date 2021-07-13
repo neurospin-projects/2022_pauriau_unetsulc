@@ -15,11 +15,12 @@ from soma import aims
 from deepsulci.deeptools.dataset import extract_data, SulciDataset
 from deepsulci.deeptools.models import UNet3D
 from deepsulci.sulci_labeling.analyse.stats import esi_score
+from torch.utils.tensorboard import SummaryWriter
 
 
 class UnetTransferSulciLabelling(object):
 
-    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None,
+    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None, model_name=None,
                  dict_names=None, dict_bck2=None, sulci_side_list=None):
 
         self.graphs = graphs
@@ -47,15 +48,25 @@ class UnetTransferSulciLabelling(object):
         else:
             self.working_path = working_path
 
+        #model name
+        if model_name is None:
+            self.model_name = 'unknown_model'
+        else:
+            self.model_name = model_name
+
         #results
         self.results = {'lr': [],
                         'momentum': [],
                         'batch_size': [],
-                        'epoch_loss': [],
-                        'epoch_acc': [],
+                        'epoch_loss_val': [],
+                        'epoch_loss_train': [],
+                        'epoch_acc_val': [],
+                        'epoch_acc_train': [],
                         'best_acc': [],
                         'best_epoch': [],
-                        'num_epoch':[]}
+                        'num_epoch': []
+                        }
+        self.dict_score = {}
 
         # translation file
         if os.path.exists(translation_file):
@@ -170,6 +181,10 @@ class UnetTransferSulciLabelling(object):
             self.results['batch_size'].append(batch_size)
             self.results['num_epoch'] = num_epochs
 
+            log_dir = os.path.join(self.working_path + '/tensorboard/' + self.model_name)
+            os.makedirs(log_dir, exist_ok=True)
+            writer = SummaryWriter(log_dir=log_dir+'/cv_'+str(num_training)) #, comment=)
+
         # # TRAINING # #
         print('training...')
 
@@ -234,13 +249,15 @@ class UnetTransferSulciLabelling(object):
                 print('{} Loss: {:.4f} Acc: {:.4f}'.format(
                     phase, epoch_loss, epoch_acc))
 
-                if save_results and phase == 'val':
+                if save_results:
+                    writer.add_scalar('Loss/'+phase, epoch_loss, epoch)
+                    writer.add_scalar('Accuracy/'+phase, epoch_acc, epoch)
                     if epoch == 0:
-                        self.results['epoch_loss'].append([epoch_loss])
-                        self.results['epoch_acc'].append([epoch_acc])
+                        self.results['epoch_loss_'+phase].append([epoch_loss])
+                        self.results['epoch_acc_'+phase].append([epoch_acc])
                     else:
-                        self.results['epoch_loss'][num_training].append(epoch_loss)
-                        self.results['epoch_acc'][num_training].append(epoch_acc)
+                        self.results['epoch_loss_'+phase][num_training].append(epoch_loss)
+                        self.results['epoch_acc_'+phase][num_training].append(epoch_acc)
 
                 # deep copy the model
                 if phase == 'val' and epoch_acc > best_acc:
@@ -259,12 +276,112 @@ class UnetTransferSulciLabelling(object):
         if save_results:
             self.results['best_acc'].append(best_acc)
             self.results['best_epoch'].append(best_epoch)
+            writer.close()
 
         # load best model weights
         self.model.load_state_dict(best_model_wts)
 
+    def test_thresholds(self, gfile_list_test, gfile_list_notcut_test, threshold_range, save_results=True):
+        print('test thresholds')
+        since = time.time()
+        for th in threshold_range:
+            if th not in self.dict_scores.keys():
+                self.dict_scores[th] = []
+
+        for gfile, gfile_notcut in zip(gfile_list_test, gfile_list_notcut_test):
+            # extract data
+            graph = aims.read(gfile)
+            if self.trfile is not None:
+                self.flt.translate(graph)
+            data = extract_data(graph)
+            nbck = np.asarray(data['nbck'])
+            bck2 = np.asarray(data['bck2'])
+            names = np.asarray(data['names'])
+
+            graph_notcut = aims.read(gfile_notcut)
+            if self.trfile is not None:
+                self.flt.translate(graph_notcut)
+            data_notcut = extract_data(graph_notcut)
+            nbck_notcut = np.asarray(data_notcut['nbck'])
+            vert_notcut = np.asarray(data_notcut['vert'])
+
+            # compute labeling
+            _, _, yscores = self.labeling(gfile)
+
+            # organize dataframes
+            df = pd.DataFrame()
+            df['point_x'] = nbck[:, 0]
+            df['point_y'] = nbck[:, 1]
+            df['point_z'] = nbck[:, 2]
+            df.sort_values(by=['point_x', 'point_y', 'point_z'],
+                           inplace=True)
+
+            df_notcut = pd.DataFrame()
+            nbck_notcut = np.asarray(nbck_notcut)
+            df_notcut['vert'] = vert_notcut
+            df_notcut['point_x'] = nbck_notcut[:, 0]
+            df_notcut['point_y'] = nbck_notcut[:, 1]
+            df_notcut['point_z'] = nbck_notcut[:, 2]
+            df_notcut.sort_values(by=['point_x', 'point_y', 'point_z'],
+                                  inplace=True)
+            if (len(df) != len(df_notcut)):
+                print()
+                print('ERROR no matches between %s and %s' % (
+                    gfile, gfile_notcut))
+                print('--- Files ignored to fix the threshold')
+                print()
+            else:
+                df['vert_notcut'] = list(df_notcut['vert'])
+                df.sort_index(inplace=True)
+                for threshold in threshold_range:
+                    ypred_cut = cutting(yscores, df['vert_notcut'], bck2, threshold)
+                    ypred_cut = [self.sulci_side_list[y] for y in ypred_cut]
+
+                    self.dict_scores[threshold].append((1 - esi_score(
+                        names, ypred_cut, self.sslist)) * 100)
+
+        if save_results:
+            self.results['threshold_scores'] = self.dict_scores
+
+        time_elapsed = time.time() - since
+        print('Cutting complete in {:.0f}m {:.0f}s'.format(
+            time_elapsed // 60, time_elapsed % 60))
+
+    def labeling(self, gfile):
+        print('Labeling', gfile)
+
+        self.model = self.model.to(self.device)
+        self.model.eval()
+        bck2 = self.dict_bck2[gfile]
+        names = self.dict_names[gfile]
+        dataset = SulciDataset(
+            [gfile], self.dict_sulci, train=False,
+            translation_file=self.trfile,
+            dict_bck2={gfile: bck2}, dict_names={gfile: names})
+        data = dataset[0]
+
+        with torch.no_grad():
+            inputs, labels = data
+            inputs = inputs.unsqueeze(0)
+            inputs = inputs.to(self.device)
+            outputs = self.model(inputs)
+            if bck2 is None:
+                bck_T = np.where(np.asarray(labels) != self.background)
+            else:
+                tr = np.min(bck2, axis=0)
+                bck_T = np.transpose(bck2 - tr)
+            _, preds = torch.max(outputs.data, 1)
+            ypred = preds[0][bck_T[0], bck_T[1], bck_T[2]].tolist()
+            ytrue = labels[bck_T[0], bck_T[1], bck_T[2]].tolist()
+            yscores = outputs[0][:, bck_T[0], bck_T[1],
+                                 bck_T[2]].tolist()
+            yscores = np.transpose(yscores)
+
+        return ytrue, ypred, yscores
+
     def save_data(self):
-        path_to_save_data = self.working_path + '/data.json'
+        os.makedirs(self.working_path + '/data', exist_ok=True)
+        path_to_save_data = self.working_path + '/data/' + self.model_name + '.json'
         data = {'dict_bck2': self.dict_bck2,
                 'dict_names': self.dict_names,
                 'sulci_side_list': self.sulci_side_list}
@@ -273,12 +390,14 @@ class UnetTransferSulciLabelling(object):
         print('Data saved')
 
     def save_model(self):
-        path_to_save_model = self.working_path + '/model'
+        os.makedirs(self.working_path + '/models', exist_ok=True)
+        path_to_save_model = self.working_path + '/models/' + self.model_name
         torch.save(self.model.state_dict(), path_to_save_model)
         print('Model saved')
 
     def save_results(self):
-        path_to_save_results = self.working_path + '/results.json'
+        os.makedirs(self.working_path + '/results', exist_ok=True)
+        path_to_save_results = self.working_path + '/results/' + self.model_name + '.json'
         with open(path_to_save_results, 'w') as f:
             json.dump(self.results, f)
         print('Results saved')
@@ -287,8 +406,18 @@ class UnetTransferSulciLabelling(object):
         self.results = {'lr': [],
                         'momentum': [],
                         'batch_size': [],
-                        'epoch_loss': [],
-                        'epoch_acc': [],
+                        'epoch_loss_val': [],
+                        'epoch_acc_val': [],
+                        'epoch_loss_train': [],
+                        'epoch_acc_train': [],
                         'best_acc': [],
                         'best_epoch': [],
-                        'num_epoch':[]}
+                        'num_epoch': [],
+                        'threshold_scores': []
+                        }
+
+    def load_saved_model(self, model_file):
+        self.load_model()
+        self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
+        self.model.to(self.device)
+        print("Model Loaded !")
