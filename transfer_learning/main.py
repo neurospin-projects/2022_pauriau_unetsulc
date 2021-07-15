@@ -69,8 +69,7 @@ if __name__ == '__main__':
 
     else:
         method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, model_name=model_name,
-                                        dict_names=data['dict_names'], dict_bck2=data['dict_bck2'], sulci_side_list=data['sulci_side_list'])
-
+                                            dict_names=data['dict_names'], dict_bck2=data['dict_bck2'], sulci_side_list=data['sulci_side_list'])
 
     # # TRAINING # #
     print('\n----- Learning -----')
@@ -98,13 +97,16 @@ if __name__ == '__main__':
             method.test_thresholds(gfile_list_test=glist_test, gfile_list_notcut_test=glist_notcut_test,
                                    threshold_range=th_range)
 
+        method.save_model(str(cvi))
+
         cvi += 1
 
     method.save_results()
-    method.save_model()
-
     cv_time = time.time() - start_time
-    print('Cross Validation complete in {:0.f}h {:.0f}m {:.0f}s'.format(cv_time // 3600, (cv_time%3600)//60, (cv_time%3600)%60))
+    if cv_time > 3600:
+        print('Cross Validation complete in {:0.f}h {:.0f}m {:.0f}s'.format(cv_time // 3600, (cv_time % 3600)//60, (cv_time % 3600)%60))
+    else:
+        print('Cross Validation complete in {:.0f}m {:.0f}s'.format(cv_time//60, cv_time%60))
 
     with open(working_path+'/results/' + model_name + '.json', 'r') as f:
         results = json.load(f)

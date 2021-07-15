@@ -9,6 +9,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
 
 from soma import aims
 
@@ -58,11 +59,15 @@ class UnetTrainingSulciLabelling(object):
         self.results = {'lr': [],
                         'momentum': [],
                         'batch_size': [],
-                        'epoch_loss': [],
-                        'epoch_acc': [],
+                        'epoch_loss_val': [],
+                        'epoch_loss_train': [],
+                        'epoch_acc_val': [],
+                        'epoch_acc_train': [],
                         'best_acc': [],
                         'best_epoch': [],
-                        'num_epoch':[]}
+                        'num_epoch': []
+                        }
+
         self.dict_scores = {}
 
         # translation file
@@ -149,7 +154,6 @@ class UnetTrainingSulciLabelling(object):
             traindataset, batch_size=batch_size,
             shuffle=False, num_workers=0)
 
-
         # # MODEL # #
         self.load_model()
         optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=0)
@@ -161,6 +165,10 @@ class UnetTrainingSulciLabelling(object):
             self.results['momentum'].append(momentum)
             self.results['batch_size'].append(batch_size)
             self.results['num_epoch'] = num_epochs
+
+            log_dir = os.path.join(self.working_path + '/tensorboard/' + self.model_name)
+            os.makedirs(log_dir, exist_ok=True)
+            writer = SummaryWriter(log_dir=log_dir+'/cv_'+str(num_training)) #, comment=)
 
         # # TRAINING # #
         print('training...')
@@ -218,13 +226,15 @@ class UnetTrainingSulciLabelling(object):
                 print('{} Loss: {:.4f} Acc: {:.4f}'.format(
                     phase, epoch_loss, epoch_acc))
 
-                if save_results and phase == 'val':
+                if save_results:
+                    writer.add_scalar('Loss/'+phase, epoch_loss, epoch)
+                    writer.add_scalar('Accuracy/'+phase, epoch_acc, epoch)
                     if epoch == 0:
-                        self.results['epoch_loss'].append([epoch_loss])
-                        self.results['epoch_acc'].append([epoch_acc])
+                        self.results['epoch_loss_'+phase].append([epoch_loss])
+                        self.results['epoch_acc_'+phase].append([epoch_acc])
                     else:
-                        self.results['epoch_loss'][num_training].append(epoch_loss)
-                        self.results['epoch_acc'][num_training].append(epoch_acc)
+                        self.results['epoch_loss_'+phase][num_training].append(epoch_loss)
+                        self.results['epoch_acc_'+phase][num_training].append(epoch_acc)
 
                 # deep copy the model
                 if phase == 'val' and epoch_acc > best_acc:
@@ -243,6 +253,8 @@ class UnetTrainingSulciLabelling(object):
         if save_results:
             self.results['best_acc'].append(best_acc)
             self.results['best_epoch'].append(best_epoch)
+
+            writer.close()
 
         # load best model weights
         self.model.load_state_dict(best_model_wts)
@@ -313,7 +325,6 @@ class UnetTrainingSulciLabelling(object):
         print('Cutting complete in {:.0f}m {:.0f}s'.format(
             time_elapsed // 60, time_elapsed % 60))
 
-
     def labeling(self, gfile):
         print('Labeling', gfile)
 
@@ -356,9 +367,12 @@ class UnetTrainingSulciLabelling(object):
             json.dump(data, f)
         print('Data saved')
 
-    def save_model(self):
+    def save_model(self, comment=None):
         os.makedirs(self.working_path + '/models', exist_ok=True)
-        path_to_save_model = self.working_path + '/models/' + self.model_name
+        if comment is None:
+            path_to_save_model = self.working_path + '/models/' + self.model_name
+        else:
+            path_to_save_model = self.working_path + '/models/' + self.model_name + '_' + comment
         torch.save(self.model.state_dict(), path_to_save_model)
         print('Model saved')
 
@@ -373,8 +387,19 @@ class UnetTrainingSulciLabelling(object):
         self.results = {'lr': [],
                         'momentum': [],
                         'batch_size': [],
-                        'epoch_loss': [],
-                        'epoch_acc': [],
+                        'epoch_loss_val': [],
+                        'epoch_acc_val': [],
+                        'epoch_loss_train': [],
+                        'epoch_acc_train': [],
                         'best_acc': [],
                         'best_epoch': [],
-                        'num_epoch':[]}
+                        'num_epoch': [],
+                        'threshold_scores': []
+                        }
+
+    def load_saved_model(self, model_file):
+        self.load_model()
+        self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
+        self.model.to(self.device)
+        print("Model Loaded !")
+>>>>>>> develop
