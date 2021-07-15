@@ -4,10 +4,12 @@ import copy
 import time
 import os
 import sigraph
+import pandas as pd
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
 
 from soma import aims
 
@@ -15,7 +17,7 @@ from soma import aims
 from deepsulci.deeptools.dataset import extract_data, SulciDataset
 from deepsulci.deeptools.models import UNet3D
 from deepsulci.sulci_labeling.analyse.stats import esi_score
-from torch.utils.tensorboard import SummaryWriter
+from deepsulci.sulci_labeling.method.cutting import cutting
 
 
 class UnetTransferSulciLabelling(object):
@@ -66,7 +68,7 @@ class UnetTransferSulciLabelling(object):
                         'best_epoch': [],
                         'num_epoch': []
                         }
-        self.dict_score = {}
+        self.dict_scores = {}
 
         # translation file
         if os.path.exists(translation_file):
@@ -389,9 +391,12 @@ class UnetTransferSulciLabelling(object):
             json.dump(data, f)
         print('Data saved')
 
-    def save_model(self):
+    def save_model(self, comment=None):
         os.makedirs(self.working_path + '/models', exist_ok=True)
-        path_to_save_model = self.working_path + '/models/' + self.model_name
+        if comment is None:
+            path_to_save_model = self.working_path + '/models/' + self.model_name
+        else:
+            path_to_save_model = self.working_path + '/models/' + self.model_name + '_' + comment
         torch.save(self.model.state_dict(), path_to_save_model)
         print('Model saved')
 
