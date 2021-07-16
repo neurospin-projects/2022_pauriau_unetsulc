@@ -52,7 +52,7 @@ if __name__ == '__main__':
     print('graph loaded')
 
     #Récupération des données (sulci_side_list, dict_sulci, dict_names)
-    path_to_data = working_path + '/data'+ model_name +'.json'
+    path_to_data = working_path + '/data/'+ model_name +'.json'
     if os.path.exists(path_to_data):
         with open(path_to_data, 'r') as f:
             data = json.load(f)
@@ -99,16 +99,14 @@ if __name__ == '__main__':
             method.test_thresholds(gfile_list_test=glist_test, gfile_list_notcut_test=glist_notcut_test,
                                    threshold_range=th_range)
 
-        method.save_model(comment=str(cvi))
+        method.save_model(comment='cv'+str(cvi))
 
         cvi += 1
 
     method.save_results()
     cv_time = time.time() - start_time
-    if cv_time > 3600:
-        print('Cross Validation complete in {:0.f}h {:.0f}m {:.0f}s'.format(cv_time // 3600, (cv_time % 3600)//60, (cv_time % 3600)%60))
-    else:
-        print('Cross Validation complete in {:.0f}m {:.0f}s'.format(cv_time//60, cv_time%60))
+
+    print('Cross Validation complete in {:.0f}h {:.0f}m {:.0f}s'.format(cv_time // 3600, (cv_time % 3600)//60, (cv_time % 3600)%60))
 
     with open(working_path+'/results/' + model_name + '.json', 'r') as f:
         results = json.load(f)
