@@ -52,8 +52,9 @@ if __name__ == '__main__':
     print('graph loaded')
 
     #Récupération des données (sulci_side_list, dict_sulci, dict_names)
-    if os.path.exists(working_path + '/data.json'):
-        with open(working_path + '/data.json', 'r') as f:
+    path_to_data = working_path + '/data' + model_name + '.json'
+    if os.path.exists(path_to_data):
+        with open(path_to_data, 'r') as f:
             data = json.load(f)
         print('data loaded')
     else:

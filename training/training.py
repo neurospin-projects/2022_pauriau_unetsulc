@@ -402,4 +402,3 @@ class UnetTrainingSulciLabelling(object):
         self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
         self.model.to(self.device)
         print("Model Loaded !")
->>>>>>> develop
