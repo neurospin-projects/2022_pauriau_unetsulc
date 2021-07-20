@@ -14,11 +14,12 @@ from torch.utils.tensorboard import SummaryWriter
 from soma import aims
 
 #from deepsulci.sulci_labeling.method.unet import UnetSulciLabeling
-from deepsulci.deeptools.dataset import extract_data, SulciDataset
+from deepsulci.deeptools.dataset import extract_data#, SulciDataset
 from deepsulci.deeptools.models import UNet3D
 from deepsulci.sulci_labeling.analyse.stats import esi_score
 from deepsulci.sulci_labeling.method.cutting import cutting
 
+from dataset_test import SulciDataset
 
 class UnetTrainingSulciLabelling(object):
 
@@ -131,25 +132,41 @@ class UnetTrainingSulciLabelling(object):
 
         #Error
         if self.sulci_side_list is None or self.dict_bck2 is None or self.dict_bck2 is None:
-            print('Error : extract data from graphs before leearning')
+            print('Error : extract data from graphs before learning')
             return 1
 
         # # DATASET / DATALOADERS # #
         print('Extract validation dataloader...')
+        if batch_size == 1:
+            valdataset = SulciDataset(
+                gfile_list_test, self.dict_sulci,
+                train=False, translation_file=self.trfile,
+                dict_bck2=self.dict_bck2, dict_names=self.dict_names)
+        else:
+            img_size = [100, 100, 100]
+            valdataset = SulciDataset(
+                gfile_list_test, self.dict_sulci,
+                train=False, translation_file=self.trfile,
+                dict_bck2=self.dict_bck2, dict_names=self.dict_names, img_size=img_size)
 
-        valdataset = SulciDataset(
-            gfile_list_test, self.dict_sulci,
-            train=False, translation_file=self.trfile,
-            dict_bck2=self.dict_bck2, dict_names=self.dict_names)
         valloader = torch.utils.data.DataLoader(
             valdataset, batch_size=batch_size,
             shuffle=False, num_workers=0)
 
         print('Extract train dataloader...')
-        traindataset = SulciDataset(
-            gfile_list_train, self.dict_sulci,
-            train=True, translation_file=self.trfile,
-            dict_bck2=self.dict_bck2, dict_names=self.dict_names)
+        if batch_size == 1:
+            traindataset = SulciDataset(
+                gfile_list_train, self.dict_sulci,
+                train=True, translation_file=self.trfile,
+                dict_bck2=self.dict_bck2, dict_names=self.dict_names)
+
+        else:
+            img_size = [100, 100, 100]
+            traindataset = SulciDataset(
+                gfile_list_train, self.dict_sulci,
+                train=True, translation_file=self.trfile,
+                dict_bck2=self.dict_bck2, dict_names=self.dict_names, img_size=img_size)
+
         trainloader = torch.utils.data.DataLoader(
             traindataset, batch_size=batch_size,
             shuffle=False, num_workers=0)
@@ -168,7 +185,7 @@ class UnetTrainingSulciLabelling(object):
 
             log_dir = os.path.join(self.working_path + '/tensorboard/' + self.model_name)
             os.makedirs(log_dir, exist_ok=True)
-            writer = SummaryWriter(log_dir=log_dir+'/cv_'+str(num_training)) #, comment=)
+            writer = SummaryWriter(log_dir=log_dir+'/cv'+str(num_training)) #, comment=)
 
         # # TRAINING # #
         print('training...')
