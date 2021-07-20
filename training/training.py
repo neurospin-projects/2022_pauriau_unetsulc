@@ -214,7 +214,7 @@ class UnetTrainingSulciLabelling(object):
 
                 # Iterate over data.
                 y_pred, y_true = [], []
-                for inputs, labels in dataloader:
+                for batch, (inputs, labels) in enumerate(dataloader):
                     inputs = inputs.to(self.device)
                     labels = labels.to(self.device)
 
@@ -234,6 +234,8 @@ class UnetTrainingSulciLabelling(object):
                     running_loss += loss.item() * inputs.size(0)
                     y_pred.extend(preds[labels != self.background].tolist())
                     y_true.extend(labels[labels != self.background].tolist())
+
+                    print('Batch n°{:.0f}/{:.0f}'.format(batch, len(dataloader.dataset)/batch_size))
 
                 epoch_loss = running_loss / len(dataloader.dataset)
                 epoch_acc = 1 - esi_score(
