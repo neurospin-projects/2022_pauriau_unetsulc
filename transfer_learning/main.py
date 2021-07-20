@@ -37,7 +37,8 @@ if __name__ == '__main__':
     print('\nLoading Data\n')
 
     #Récupération des graphes
-    with open(os.path.join(working_path + '/cohorts/cohort-' + cohort_name + '_hemi-' + hemi + '.json'), 'r') as f:
+    cohort_file = 'cohort-' + cohort_name + '_hemi-' + hemi
+    with open(os.path.join(working_path + '/cohorts/' + cohort_file + '.json'), 'r') as f:
         cohort = json.load(f)
     graphs = []
     notcut_graphs = []
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     print('graph loaded')
 
     #Récupération des données (sulci_side_list, dict_sulci, dict_names)
-    path_to_data = working_path + '/data/' + model_name + '.json'
+    path_to_data = working_path + '/data/' + cohort_file + '.json'
     if os.path.exists(path_to_data):
         with open(path_to_data, 'r') as f:
             data = json.load(f)
@@ -66,7 +67,7 @@ if __name__ == '__main__':
     if len(data) == 0:
         method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, model_name=model_name)
         method.extract_data_from_graphs()
-        method.save_data()
+        method.save_data(name=cohort_file)
 
     else:
         method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, model_name=model_name,
@@ -98,7 +99,7 @@ if __name__ == '__main__':
             method.test_thresholds(gfile_list_test=glist_test, gfile_list_notcut_test=glist_notcut_test,
                                    threshold_range=th_range)
 
-        method.save_model(comment='cv'+str(cvi))
+        method.save_model(name=model_name+'_cv'+str(cvi))
 
         cvi += 1
 

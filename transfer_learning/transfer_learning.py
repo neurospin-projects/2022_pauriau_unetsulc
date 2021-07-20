@@ -387,9 +387,12 @@ class UnetTransferSulciLabelling(object):
 
         return ytrue, ypred, yscores
 
-    def save_data(self):
+    def save_data(self, name=None):
         os.makedirs(self.working_path + '/data', exist_ok=True)
-        path_to_save_data = self.working_path + '/data/' + self.model_name + '.json'
+        if name is None:
+            path_to_save_data = self.working_path + '/data/' + self.model_name + '.json'
+        else:
+            path_to_save_data = self.working_path + '/data/' + name + '.json'
         data = {'dict_bck2': self.dict_bck2,
                 'dict_names': self.dict_names,
                 'sulci_side_list': self.sulci_side_list}
@@ -397,18 +400,21 @@ class UnetTransferSulciLabelling(object):
             json.dump(data, f)
         print('Data saved')
 
-    def save_model(self, comment=None):
+    def save_model(self, name=None):
         os.makedirs(self.working_path + '/models', exist_ok=True)
-        if comment is None:
+        if name is None:
             path_to_save_model = self.working_path + '/models/' + self.model_name
         else:
-            path_to_save_model = self.working_path + '/models/' + self.model_name + '_' + comment
+            path_to_save_model = self.working_path + '/models/' + name
         torch.save(self.model.state_dict(), path_to_save_model)
         print('Model saved')
 
-    def save_results(self):
+    def save_results(self, name=None):
         os.makedirs(self.working_path + '/results', exist_ok=True)
-        path_to_save_results = self.working_path + '/results/' + self.model_name + '.json'
+        if name is None:
+            path_to_save_results = self.working_path + '/results/' + self.model_name + '.json'
+        else:
+            path_to_save_results = self.working_path + '/results/' + name + '.json'
         with open(path_to_save_results, 'w') as f:
             json.dump(self.results, f)
         print('Results saved')
