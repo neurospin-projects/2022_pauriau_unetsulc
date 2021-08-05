@@ -5,6 +5,7 @@ import time
 import os
 import sigraph
 import pandas as pd
+import random
 
 import torch
 import torch.nn as nn
@@ -137,39 +138,53 @@ class UnetTrainingSulciLabelling(object):
 
         # # DATASET / DATALOADERS # #
         print('Extract validation dataloader...')
+        valdataset = SulciDataset(
+            gfile_list_test, self.dict_sulci,
+            train=False, translation_file=self.trfile,
+            dict_bck2=self.dict_bck2, dict_names=self.dict_names)
+
         if batch_size == 1:
-            valdataset = SulciDataset(
-                gfile_list_test, self.dict_sulci,
-                train=False, translation_file=self.trfile,
-                dict_bck2=self.dict_bck2, dict_names=self.dict_names)
+            valloader = torch.utils.data.DataLoader(
+                valdataset, batch_size=batch_size,
+                shuffle=False, num_workers=0)
         else:
-            img_size = [100, 100, 100]
-            valdataset = SulciDataset(
+            img_size = [0, 0, 0]
+            for inputs, _ in valdataset:
+                size = inputs.size()
+                img_size = [np.max([img_size[i], size[i + 1]]) for i in range(len(img_size))]
+            valdataset_resized = SulciDataset(
                 gfile_list_test, self.dict_sulci,
                 train=False, translation_file=self.trfile,
                 dict_bck2=self.dict_bck2, dict_names=self.dict_names, img_size=img_size)
-
-        valloader = torch.utils.data.DataLoader(
-            valdataset, batch_size=batch_size,
-            shuffle=False, num_workers=0)
+            valloader = torch.utils.data.DataLoader(
+                valdataset_resized, batch_size=batch_size,
+                shuffle=False, num_workers=0)
 
         print('Extract train dataloader...')
-        if batch_size == 1:
-            traindataset = SulciDataset(
-                gfile_list_train, self.dict_sulci,
-                train=True, translation_file=self.trfile,
-                dict_bck2=self.dict_bck2, dict_names=self.dict_names)
+        traindataset = SulciDataset(
+            gfile_list_train, self.dict_sulci,
+            train=True, translation_file=self.trfile,
+            dict_bck2=self.dict_bck2, dict_names=self.dict_names)
 
+        if batch_size == 1:
+            trainloader = torch.utils.data.DataLoader(
+                traindataset, batch_size=batch_size,
+                shuffle=False, num_workers=0)
         else:
-            img_size = [100, 100, 100]
-            traindataset = SulciDataset(
+            random.seed(42)
+            np.random.seed(42)
+            img_size = [0, 0, 0]
+            for _ in range(num_epochs):
+                for inputs, _ in traindataset:
+                    size = inputs.size()
+                    img_size = [np.max([img_size[i], size[i + 1]]) for i in range(len(img_size))]
+            traindataset_resized = SulciDataset(
                 gfile_list_train, self.dict_sulci,
                 train=True, translation_file=self.trfile,
                 dict_bck2=self.dict_bck2, dict_names=self.dict_names, img_size=img_size)
-
-        trainloader = torch.utils.data.DataLoader(
-            traindataset, batch_size=batch_size,
-            shuffle=False, num_workers=0)
+            trainloader = torch.utils.data.DataLoader(
+                traindataset_resized, batch_size=batch_size,
+                shuffle=False, num_workers=0)
 
         # # MODEL # #
         self.load_model()
@@ -194,6 +209,9 @@ class UnetTrainingSulciLabelling(object):
         best_model_wts = copy.deepcopy(self.model.state_dict())
         best_acc, epoch_acc = 0., 0.
         best_epoch = 0
+
+        np.random.seed(42)
+        random.seed(42)
 
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -235,7 +253,7 @@ class UnetTrainingSulciLabelling(object):
                     y_pred.extend(preds[labels != self.background].tolist())
                     y_true.extend(labels[labels != self.background].tolist())
 
-                    print('Batch n°{:.0f}/{:.0f} || Loss: {:.4f}'.format(batch+1, len(dataloader.dataset)/batch_size, loss.item()))
+                    print('Batch n°{:.0f}/{:.0f} || Loss: {:.4f}'.format(batch+1, np.ceil(len(dataloader.dataset)/batch_size), loss.item()))
 
                 epoch_loss = running_loss / len(dataloader.dataset)
                 epoch_acc = 1 - esi_score(
