@@ -30,6 +30,7 @@ n_cvinner = parameters['n_cvinner']
 n_epochs = parameters['n_epochs']
 
 model_name = parameters['model_name']
+print('model: ', model_name)
 
 if __name__ == '__main__':
 
