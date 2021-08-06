@@ -152,6 +152,7 @@ class UnetTrainingSulciLabelling(object):
             for inputs, _ in valdataset:
                 size = inputs.size()
                 img_size = [np.max([img_size[i], size[i + 1]]) for i in range(len(img_size))]
+            print('Image size:', img_size, sep=' ')
             valdataset_resized = SulciDataset(
                 gfile_list_test, self.dict_sulci,
                 train=False, translation_file=self.trfile,
