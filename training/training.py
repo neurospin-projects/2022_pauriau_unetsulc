@@ -116,7 +116,7 @@ class UnetTrainingSulciLabelling(object):
         self.dict_names = dict_names
 
 
-    def load_model(self):
+    def load_model(self, order='crg'):
         # MODEL
         # Load file
         print('Network initialization...')
@@ -124,7 +124,8 @@ class UnetTrainingSulciLabelling(object):
         num_filter = 64
 
         self.model = UNet3D(num_channel,  len(self.sulci_side_list), final_sigmoid=False,
-                               init_channel_number=num_filter)
+                            interpolate=True, dropout=0., conv_layer_order=order,
+                            init_channel_number=num_filter)
 
         self.model = self.model.to(self.device)
 
@@ -188,7 +189,10 @@ class UnetTrainingSulciLabelling(object):
                 shuffle=False, num_workers=0)
 
         # # MODEL # #
-        self.load_model()
+        if batch_size == 1:
+            self.load_model()
+        else:
+            self.load_model(order='crb')
         optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=0)
         criterion = nn.CrossEntropyLoss(ignore_index=-1)
 
