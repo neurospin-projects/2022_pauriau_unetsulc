@@ -5,6 +5,7 @@ import time
 import os
 import sigraph
 import pandas as pd
+import random
 
 import torch
 import torch.nn as nn
@@ -49,12 +50,6 @@ class UnetTransferSulciLabelling(object):
             self.working_path = os.getcwd()
         else:
             self.working_path = working_path
-        #model name
-        if model_name is None:
-            self.model_name = 'unknown_model'
-        else:
-            self.model_name = model_name
-
         #model name
         if model_name is None:
             self.model_name = 'unknown_model'
@@ -154,28 +149,59 @@ class UnetTransferSulciLabelling(object):
 
         #Error
         if self.sulci_side_list is None or self.dict_bck2 is None or self.dict_bck2 is None:
-            print('Error : extract data from graphs before leearning')
+            print('Error : extract data from graphs before learning')
             return 1
 
         # # DATASET / DATALOADERS # #
         print('Extract validation dataloader...')
-
         valdataset = SulciDataset(
             gfile_list_test, self.dict_sulci,
             train=False, translation_file=self.trfile,
             dict_bck2=self.dict_bck2, dict_names=self.dict_names)
-        valloader = torch.utils.data.DataLoader(
-            valdataset, batch_size=batch_size,
-            shuffle=False, num_workers=0)
+
+        if batch_size == 1:
+            valloader = torch.utils.data.DataLoader(
+                valdataset, batch_size=batch_size,
+                shuffle=False, num_workers=0)
+        else:
+            img_size = [0, 0, 0]
+            for inputs, _ in valdataset:
+                size = inputs.size()
+                img_size = [np.max([img_size[i], size[i + 1]]) for i in range(len(img_size))]
+            print('Image size:', img_size, sep=' ')
+            valdataset_resized = SulciDataset(
+                gfile_list_test, self.dict_sulci,
+                train=False, translation_file=self.trfile,
+                dict_bck2=self.dict_bck2, dict_names=self.dict_names, img_size=img_size)
+            valloader = torch.utils.data.DataLoader(
+                valdataset_resized, batch_size=batch_size,
+                shuffle=False, num_workers=0)
 
         print('Extract train dataloader...')
         traindataset = SulciDataset(
             gfile_list_train, self.dict_sulci,
             train=True, translation_file=self.trfile,
             dict_bck2=self.dict_bck2, dict_names=self.dict_names)
-        trainloader = torch.utils.data.DataLoader(
-            traindataset, batch_size=batch_size,
-            shuffle=False, num_workers=0)
+
+        if batch_size == 1:
+            trainloader = torch.utils.data.DataLoader(
+                traindataset, batch_size=batch_size,
+                shuffle=False, num_workers=0)
+        else:
+            random.seed(42)
+            np.random.seed(42)
+            img_size = [0, 0, 0]
+            for _ in range(num_epochs):
+                for inputs, _ in traindataset:
+                    size = inputs.size()
+                    img_size = [np.max([img_size[i], size[i + 1]]) for i in range(len(img_size))]
+            traindataset_resized = SulciDataset(
+                gfile_list_train, self.dict_sulci,
+                train=True, translation_file=self.trfile,
+                dict_bck2=self.dict_bck2, dict_names=self.dict_names, img_size=img_size)
+            trainloader = torch.utils.data.DataLoader(
+                traindataset_resized, batch_size=batch_size,
+                shuffle=False, num_workers=0)
 
         # # MODEL # #
         self.load_model()
