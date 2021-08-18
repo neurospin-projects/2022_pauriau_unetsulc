@@ -67,7 +67,10 @@ class UnetTrainingSulciLabelling(object):
                         'epoch_acc_train': [],
                         'best_acc': [],
                         'best_epoch': [],
-                        'num_epoch': []
+                        'num_epoch': [],
+                        'threshold_scores': [],
+                        'graphs_train': [],
+                        'graphs_test': []
                         }
 
         self.dict_scores = {}
@@ -201,7 +204,9 @@ class UnetTrainingSulciLabelling(object):
             self.results['lr'].append(lr)
             self.results['momentum'].append(momentum)
             self.results['batch_size'].append(batch_size)
-            self.results['num_epoch'] = num_epochs
+            self.results['num_epoch'].append(num_epochs)
+            self.results['graphs_test'].append(list(gfile_list_test))
+            self.results['graphs_train'].append(list(gfile_list_train))
 
             log_dir = os.path.join(self.working_path + '/tensorboard/' + self.model_name)
             os.makedirs(log_dir, exist_ok=True)
@@ -442,7 +447,9 @@ class UnetTrainingSulciLabelling(object):
                         'best_acc': [],
                         'best_epoch': [],
                         'num_epoch': [],
-                        'threshold_scores': []
+                        'threshold_scores': [],
+                        'graphs_train': [],
+                        'graphs_test': []
                         }
 
     def load_saved_model(self, model_file):
