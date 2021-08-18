@@ -4,6 +4,9 @@ import numpy as np
 from sklearn.model_selection import KFold, train_test_split
 from transfer_learning import UnetTransferSulciLabelling
 import time
+import warnings
+
+warnings.simplefilter(action='ignore', category=UserWarning)
 
 # Parameters
 with open('parameters.json', 'r') as f:
@@ -30,6 +33,7 @@ n_cvinner = parameters['n_cvinner']
 n_epochs = parameters['n_epochs']
 
 model_name = parameters['model_name']
+print('Model name: ', model_name)
 
 if __name__ == '__main__':
 
