@@ -420,9 +420,9 @@ class UnetTrainingSulciLabelling(object):
     def save_model(self, name=None):
         os.makedirs(self.working_path + '/models', exist_ok=True)
         if name is None:
-            path_to_save_model = self.working_path + '/models/' + self.model_name
+            path_to_save_model = self.working_path + '/models/' + self.model_name + '.mdsm'
         else:
-            path_to_save_model = self.working_path + '/models/' + name
+            path_to_save_model = self.working_path + '/models/' + name + '.mdsm'
         torch.save(self.model.state_dict(), path_to_save_model)
         print('Model saved')
 

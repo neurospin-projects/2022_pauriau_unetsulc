@@ -4,7 +4,9 @@ import numpy as np
 from sklearn.model_selection import KFold, train_test_split
 from training import UnetTrainingSulciLabelling
 import time
+import warnings
 
+warnings.simplefilter(action='ignore', category=UserWarning)
 # Parameters
 with open('parameters.json', 'r') as f:
     parameters = json.load(f)
