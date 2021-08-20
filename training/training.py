@@ -263,7 +263,8 @@ class UnetTrainingSulciLabelling(object):
                     y_pred.extend(preds[labels != self.background].tolist())
                     y_true.extend(labels[labels != self.background].tolist())
 
-                    print('Batch n°{:.0f}/{:.0f} || Loss: {:.4f}'.format(batch+1, np.ceil(len(dataloader.dataset)/batch_size), loss.item()))
+                    if batch_size > 1:
+                        print('Batch n°{:.0f}/{:.0f} || Loss: {:.4f}'.format(batch+1, np.ceil(len(dataloader.dataset)/batch_size), loss.item()))
 
                 epoch_loss = running_loss / len(dataloader.dataset)
                 epoch_acc = 1 - esi_score(
@@ -420,9 +421,10 @@ class UnetTrainingSulciLabelling(object):
     def save_model(self, name=None):
         os.makedirs(self.working_path + '/models', exist_ok=True)
         if name is None:
-            path_to_save_model = self.working_path + '/models/' + self.model_name + '.mdsm'
+            path_to_save_model = self.working_path + '/models/' + self.model_name + '_model.mdsm'
         else:
-            path_to_save_model = self.working_path + '/models/' + name + '.mdsm'
+            path_to_save_model = self.working_path + '/models/' + name + '_model.mdsm'
+        self.model.to(torch.device('cpu'))
         torch.save(self.model.state_dict(), path_to_save_model)
         print('Model saved')
 
@@ -453,7 +455,10 @@ class UnetTrainingSulciLabelling(object):
                         }
 
     def load_saved_model(self, model_file):
-        self.load_model()
+        try:
+            self.load_model()
+        except RuntimeError:
+            self.load_model('crb')
         self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
         self.model.to(self.device)
         print("Model Loaded !")

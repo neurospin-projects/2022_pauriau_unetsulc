@@ -15,11 +15,12 @@ from torch.utils.tensorboard import SummaryWriter
 from soma import aims
 
 #from deepsulci.sulci_labeling.method.unet import UnetSulciLabeling
-from deepsulci.deeptools.dataset import extract_data, SulciDataset
+from deepsulci.deeptools.dataset import extract_data, #SulciDataset
 from deepsulci.deeptools.models import UNet3D
 from deepsulci.sulci_labeling.analyse.stats import esi_score
 from deepsulci.sulci_labeling.method.cutting import cutting
 
+from dataset_test import SulciDataset
 
 class UnetTransferSulciLabelling(object):
 
@@ -250,7 +251,7 @@ class UnetTransferSulciLabelling(object):
 
                 # Iterate over data.
                 y_pred, y_true = [], []
-                for inputs, labels in dataloader:
+                for batch, (inputs, labels) in enumerate(dataloader):
                     inputs = inputs.to(self.device)
                     labels = labels.to(self.device)
 
@@ -278,6 +279,9 @@ class UnetTransferSulciLabelling(object):
                     running_loss += loss.item() * inputs.size(0)
                     y_pred.extend(preds[labels != self.background].tolist())
                     y_true.extend(labels[labels != self.background].tolist())
+
+                    if batch_size > 1:
+                        print('Batch n°{:.0f}/{:.0f} || Loss: {:.4f}'.format(batch+1, np.ceil(len(dataloader.dataset)/batch_size), loss.item()))
 
                 epoch_loss = running_loss / len(dataloader.dataset)
                 epoch_acc = 1 - esi_score(
@@ -433,9 +437,9 @@ class UnetTransferSulciLabelling(object):
     def save_model(self, name=None):
         os.makedirs(self.working_path + '/models', exist_ok=True)
         if name is None:
-            path_to_save_model = self.working_path + '/models/' + self.model_name + '.mdsm'
+            path_to_save_model = self.working_path + '/models/' + self.model_name + '_model.mdsm'
         else:
-            path_to_save_model = self.working_path + '/models/' + name + '.mdsm'
+            path_to_save_model = self.working_path + '/models/' + name + '_model.mdsm'
         torch.save(self.model.state_dict(), path_to_save_model)
         print('Model saved')
 
@@ -466,7 +470,10 @@ class UnetTransferSulciLabelling(object):
                         }
 
     def load_saved_model(self, model_file):
-        self.load_model()
+        try:
+            self.load_model()
+        except RuntimeError:
+            self.load_model('crb')
         self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
         self.model.to(self.device)
         print("Model Loaded !")
