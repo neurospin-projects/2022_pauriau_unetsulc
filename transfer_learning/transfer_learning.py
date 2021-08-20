@@ -205,6 +205,8 @@ class UnetTransferSulciLabelling(object):
             trainloader = torch.utils.data.DataLoader(
                 traindataset_resized, batch_size=batch_size,
                 shuffle=False, num_workers=0)
+            random.seed(42)
+            np.random.seed(42)
 
         # # MODEL # #
         self.load_model()
@@ -470,10 +472,7 @@ class UnetTransferSulciLabelling(object):
                         }
 
     def load_saved_model(self, model_file):
-        try:
-            self.load_model()
-        except RuntimeError:
-            self.load_model('crb')
+        self.load_model()
         self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
         self.model.to(self.device)
         print("Model Loaded !")

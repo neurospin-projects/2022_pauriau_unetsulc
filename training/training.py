@@ -190,6 +190,8 @@ class UnetTrainingSulciLabelling(object):
             trainloader = torch.utils.data.DataLoader(
                 traindataset_resized, batch_size=batch_size,
                 shuffle=False, num_workers=0)
+            np.random.seed(42)
+            random.seed(42)
 
         # # MODEL # #
         if batch_size == 1:
@@ -219,9 +221,6 @@ class UnetTrainingSulciLabelling(object):
         best_model_wts = copy.deepcopy(self.model.state_dict())
         best_acc, epoch_acc = 0., 0.
         best_epoch = 0
-
-        np.random.seed(42)
-        random.seed(42)
 
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -455,10 +454,13 @@ class UnetTrainingSulciLabelling(object):
                         }
 
     def load_saved_model(self, model_file):
+
+        self.load_model()
+        self.load_model('crb')
         try:
-            self.load_model()
+            self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
         except RuntimeError:
             self.load_model('crb')
-        self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
+            self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
         self.model.to(self.device)
         print("Model Loaded !")
