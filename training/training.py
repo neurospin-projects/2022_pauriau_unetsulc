@@ -437,6 +437,28 @@ class UnetTrainingSulciLabelling(object):
             json.dump(self.results, f)
         print('Results saved')
 
+    def save_params(self, name=None):
+        params = {'dict_bck2': self.dict_bck2,
+                  'dict_names': self.dict_names,
+                  'sulci_side_list': self.sulci_side_list
+                 }
+        if 'threshold_scores' in self.results.keys():
+            best_threshold = -1
+            best_mean = 0
+            for th, scores in self.results['threshold_scores'].items():
+                mean_score = np.mean(scores)
+                if mean_score > best_mean:
+                    best_threshold = th
+                    best_mean = mean_score
+            params['cutting_threshold'] = best_threshold
+        if name is None:
+            path_to_save_params = self.working_path + '/models/' + self.model_name + '_params.json'
+        else:
+            path_to_save_params = self.working_path + '/models/' + name + '_params.json'
+        with open(path_to_save_params, 'w') as f:
+            json.dump(params, f)
+        print('Parameters saved')
+
     def reset_results(self):
         self.results = {'lr': [],
                         'momentum': [],
