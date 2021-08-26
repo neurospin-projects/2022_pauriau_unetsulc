@@ -34,6 +34,11 @@ n_epochs = parameters['n_epochs']
 model_name = parameters['model_name']
 print('model: ', model_name)
 
+if 'patience' in parameters.keys():
+    patience = parameters['patience']
+else:
+    patience = None
+
 if __name__ == '__main__':
 
     # # DATA INPUT # #
@@ -95,7 +100,7 @@ if __name__ == '__main__':
         glist_test = agraphs[test]
 
         method.learning(lr=lr, momentum=momentum, num_epochs=n_epochs, gfile_list_train=glist_train,
-                    gfile_list_test=glist_test, batch_size=batch_size, save_results=True)
+                    gfile_list_test=glist_test, batch_size=batch_size, patience=patience, save_results=True)
 
         if notcut_graphs is not None:
             print('\nCutting')

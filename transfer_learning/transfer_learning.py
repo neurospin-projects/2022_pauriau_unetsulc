@@ -19,6 +19,7 @@ from deepsulci.deeptools.dataset import extract_data #, SulciDataset
 from deepsulci.deeptools.models import UNet3D
 from deepsulci.sulci_labeling.analyse.stats import esi_score
 from deepsulci.sulci_labeling.method.cutting import cutting
+from deepsulci.deeptools.early_stopping import EarlyStopping
 
 from dataset_test import SulciDataset
 
@@ -148,7 +149,7 @@ class UnetTransferSulciLabelling(object):
         self.model = self.model.to(self.device)
 
 
-    def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, batch_size=1, save_results=True):
+    def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, batch_size=1, patience=None, save_results=True):
 
         #Error
         if self.sulci_side_list is None or self.dict_bck2 is None or self.dict_bck2 is None:
@@ -234,6 +235,11 @@ class UnetTransferSulciLabelling(object):
         best_acc, epoch_acc = 0., 0.
         best_epoch = 0
 
+        # early stopping
+        if patience is not None:
+            #divide_lr = EarlyStopping(patience=patience)
+            es_stop = EarlyStopping(patience=patience*2)
+
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch, num_epochs - 1))
             print('-' * 10)
@@ -308,6 +314,22 @@ class UnetTransferSulciLabelling(object):
                     best_acc = epoch_acc
                     best_epoch = epoch
                     best_model_wts = copy.deepcopy(self.model.state_dict())
+
+            # early_stopping
+            if patience is not None:
+                es_stop(epoch_loss, self.model)
+                #divide_lr(epoch_loss, self.model)
+
+                #if divide_lr.early_stop:
+                #    lr = lr / 2
+                #    print('\tDivide learning rate. New value: {}'.format(lr))
+                #    optimizer = optim.SGD(self.model.parameters(), lr=lr,
+                #                          momentum=momentum)
+                #    divide_lr = EarlyStopping(patience=patience)
+
+                if es_stop.early_stop:
+                    print("Early stopping")
+                    break
 
             print('Epoch took %i s.' % (time.time() - start_time))
             print('\n')

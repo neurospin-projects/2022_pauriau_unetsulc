@@ -19,6 +19,7 @@ from deepsulci.deeptools.dataset import extract_data#, SulciDataset
 from deepsulci.deeptools.models import UNet3D
 from deepsulci.sulci_labeling.analyse.stats import esi_score
 from deepsulci.sulci_labeling.method.cutting import cutting
+from deepsulci.deeptools.early_stopping import EarlyStopping
 
 from dataset_test import SulciDataset
 
@@ -133,7 +134,7 @@ class UnetTrainingSulciLabelling(object):
         self.model = self.model.to(self.device)
 
 
-    def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, batch_size=1, save_results=True):
+    def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, batch_size=1, patience=None, save_results=True):
 
         #Error
         if self.sulci_side_list is None or self.dict_bck2 is None or self.dict_bck2 is None:
@@ -214,6 +215,11 @@ class UnetTrainingSulciLabelling(object):
             os.makedirs(log_dir, exist_ok=True)
             writer = SummaryWriter(log_dir=log_dir+'/cv'+str(num_training)) #, comment=)
 
+        # early stopping
+        if patience is not None:
+            #divide_lr = EarlyStopping(patience=patience)
+            es_stop = EarlyStopping(patience=patience*2)
+
         # # TRAINING # #
         print('training...')
 
@@ -289,6 +295,22 @@ class UnetTrainingSulciLabelling(object):
                     best_epoch = epoch
                     best_model_wts = copy.deepcopy(self.model.state_dict())
 
+            # early_stopping
+            if patience is not None:
+                es_stop(epoch_loss, self.model)
+                #divide_lr(epoch_loss, self.model)
+
+                #if divide_lr.early_stop:
+                #    lr = lr / 2
+                #    print('\tDivide learning rate. New value: {}'.format(lr))
+                #    optimizer = optim.SGD(self.model.parameters(), lr=lr,
+                #                          momentum=momentum)
+                #    divide_lr = EarlyStopping(patience=patience)
+
+                if es_stop.early_stop:
+                    print("Early stopping")
+                    break
+
             print('Epoch took %i s.' % (time.time() - start_time))
             print('\n')
 
@@ -300,7 +322,6 @@ class UnetTrainingSulciLabelling(object):
         if save_results:
             self.results['best_acc'].append(best_acc)
             self.results['best_epoch'].append(best_epoch)
-
             writer.close()
 
         # load best model weights
