@@ -275,8 +275,6 @@ class UnetTransferSulciLabelling(object):
                                 parameters.requires_grad = True
                             else:
                                 parameters.requires_grad = False
-                            if batch == 1:
-                                print(name, parameters.requires_grad)
                         outputs = self.model(inputs)
                         _, preds = torch.max(outputs, 1)
                         loss = criterion(outputs, labels)
