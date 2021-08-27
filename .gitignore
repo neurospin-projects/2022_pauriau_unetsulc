@@ -1,6 +1,8 @@
 **/.idea/
 **/.idea/misc.xml
 **/.idea/transfer_learning.iml
+**/__pycache__/
+**/parameters.json
 
 # Compiled source #
 ###################
