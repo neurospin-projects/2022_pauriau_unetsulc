@@ -69,6 +69,7 @@ class UnetTransferSulciLabelling(object):
                         'best_acc': [],
                         'best_epoch': [],
                         'num_epoch': [],
+                        'duration': [],
                         'graphs_train': [],
                         'graphs_test': []
                         }
@@ -240,6 +241,8 @@ class UnetTransferSulciLabelling(object):
             #divide_lr = EarlyStopping(patience=patience)
             es_stop = EarlyStopping(patience=patience*2)
 
+        training_layers = ['final_conv']
+
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch, num_epochs - 1))
             print('-' * 10)
@@ -268,7 +271,7 @@ class UnetTransferSulciLabelling(object):
 
                     if phase == 'train':
                         for name, parameters in self.model.named_parameters():
-                            if name == 'final_conv.weight' or name == 'final_conv.bias':
+                            if np.any([name.startswith(layer) for layer in training_layers]):
                                 parameters.requires_grad = True
                             else:
                                 parameters.requires_grad = False
@@ -315,6 +318,13 @@ class UnetTransferSulciLabelling(object):
                     best_epoch = epoch
                     best_model_wts = copy.deepcopy(self.model.state_dict())
 
+            #Fine Tunning
+            if epoch == num_epochs // 2:
+                training_layers.append('decoders.2')
+                training_layers.append('decoders.1')
+                lr = lr / 10
+                optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
+
             # early_stopping
             if patience is not None:
                 es_stop(epoch_loss, self.model)
@@ -342,6 +352,7 @@ class UnetTransferSulciLabelling(object):
         if save_results:
             self.results['best_acc'].append(best_acc)
             self.results['best_epoch'].append(best_epoch)
+            self.results['duration'].append(time_elapsed)
             writer.close()
 
         # load best model weights
@@ -510,6 +521,7 @@ class UnetTransferSulciLabelling(object):
                         'best_acc': [],
                         'best_epoch': [],
                         'num_epoch': [],
+                        'duration': [],
                         'threshold_scores': [],
                         'graphs_train': [],
                         'graphs_test': []
