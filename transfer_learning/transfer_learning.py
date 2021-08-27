@@ -275,6 +275,8 @@ class UnetTransferSulciLabelling(object):
                                 parameters.requires_grad = True
                             else:
                                 parameters.requires_grad = False
+                            if batch == 1:
+                                print(name, parameters.requires_grad)
                         outputs = self.model(inputs)
                         _, preds = torch.max(outputs, 1)
                         loss = criterion(outputs, labels)
@@ -318,12 +320,7 @@ class UnetTransferSulciLabelling(object):
                     best_epoch = epoch
                     best_model_wts = copy.deepcopy(self.model.state_dict())
 
-            #Fine Tunning
-            if epoch == num_epochs // 2:
-                training_layers.append('decoders.2')
-                training_layers.append('decoders.1')
-                lr = lr / 10
-                optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
+            print('Epoch took %i s.' % (time.time() - start_time))
 
             # early_stopping
             if patience is not None:
@@ -338,11 +335,20 @@ class UnetTransferSulciLabelling(object):
                 #    divide_lr = EarlyStopping(patience=patience)
 
                 if es_stop.early_stop:
-                    print("Early stopping")
+                    print("\nEarly stopping")
                     break
 
-            print('Epoch took %i s.' % (time.time() - start_time))
+            #Fine Tunning
+            if epoch == num_epochs // 2:
+                print('\nFine tunning')
+                training_layers.append('decoders.2')
+                training_layers.append('decoders.1')
+                lr = lr / 10
+                print('Divide learning rate. New value: {}'.format(lr))
+                optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
             print('\n')
+
+
 
         time_elapsed = time.time() - since
         print('Training complete in {:.0f}m {:.0f}s'.format(
