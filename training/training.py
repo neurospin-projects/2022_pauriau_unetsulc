@@ -69,6 +69,7 @@ class UnetTrainingSulciLabelling(object):
                         'best_acc': [],
                         'best_epoch': [],
                         'num_epoch': [],
+                        'duration': [],
                         'threshold_scores': [],
                         'graphs_train': [],
                         'graphs_test': []
@@ -322,6 +323,7 @@ class UnetTrainingSulciLabelling(object):
         if save_results:
             self.results['best_acc'].append(best_acc)
             self.results['best_epoch'].append(best_epoch)
+            self.results['duration'].append(time_elapsed)
             writer.close()
 
         # load best model weights
@@ -491,6 +493,7 @@ class UnetTrainingSulciLabelling(object):
                         'best_acc': [],
                         'best_epoch': [],
                         'num_epoch': [],
+                        'duration': [],
                         'threshold_scores': [],
                         'graphs_train': [],
                         'graphs_test': []
