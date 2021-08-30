@@ -335,6 +335,7 @@ class UnetTransferSulciLabelling(object):
                     lr = lr / 10
                     print('Divide learning rate. New value: {}'.format(lr))
                     optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
+                    fine_tunning = BullshitClass(patience=num_epochs)
 
                 if es_stop.early_stop:
                     print("\nEarly stopping")
@@ -530,3 +531,12 @@ class UnetTransferSulciLabelling(object):
         self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
         self.model.to(self.device)
         print("Model Loaded !")
+
+class BullshitClass(object):
+    def __init__(self, patience=7, verbose=False):
+        self.patience = patience
+        self.verbose = verbose
+        self.early_stop = False
+
+    def __call__(self, val_loss, model):
+        self.early_stop = False
