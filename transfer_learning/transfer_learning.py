@@ -22,6 +22,7 @@ from deepsulci.sulci_labeling.method.cutting import cutting
 from deepsulci.deeptools.early_stopping import EarlyStopping
 
 from dataset_test import SulciDataset
+from fine_tunning import FineTunning
 
 class UnetTransferSulciLabelling(object):
 
@@ -239,7 +240,7 @@ class UnetTransferSulciLabelling(object):
 
         # early stopping
         if patience is not None:
-            fine_tunning = EarlyStopping(patience=patience)
+            fine_tunning = FineTunning(patience=patience, save=False)
             es_stop = EarlyStopping(patience=patience*2)
 
         training_layers = ['final_conv']
@@ -327,7 +328,7 @@ class UnetTransferSulciLabelling(object):
                 es_stop(epoch_loss, self.model)
                 fine_tunning(epoch_loss, self.model)
 
-                if fine_tunning.early_stop:
+                if fine_tunning.ft_start:
                     print('\nFine tunning')
                     training_layers.append('decoders.2')
                     training_layers.append('decoders.1')
@@ -335,7 +336,6 @@ class UnetTransferSulciLabelling(object):
                     lr = lr / 10
                     print('Divide learning rate. New value: {}'.format(lr))
                     optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
-                    fine_tunning = BullshitClass(patience=num_epochs)
 
                 if es_stop.early_stop:
                     print("\nEarly stopping")
@@ -531,12 +531,3 @@ class UnetTransferSulciLabelling(object):
         self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
         self.model.to(self.device)
         print("Model Loaded !")
-
-class BullshitClass(object):
-    def __init__(self, patience=7, verbose=False):
-        self.patience = patience
-        self.verbose = verbose
-        self.early_stop = False
-
-    def __call__(self, val_loss, model):
-        self.early_stop = False
