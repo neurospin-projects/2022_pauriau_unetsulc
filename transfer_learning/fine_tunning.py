@@ -23,7 +23,7 @@ class FineTunning(object):
         self.counter = 0
         self.best_score = None
         self.stop = False
-        self.fine_tunning = False
+        self.ft_start = False
         self.val_loss_min = np.Inf
         self.save = save
         self.savepath = savepath
@@ -31,7 +31,7 @@ class FineTunning(object):
     def __call__(self, val_loss, model):
 
         if self.stop:
-            self.fine_tunning = False
+            self.ft_start = False
         else:
             score = -val_loss
             if self.best_score is None:
