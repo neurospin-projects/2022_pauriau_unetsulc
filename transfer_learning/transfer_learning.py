@@ -22,6 +22,7 @@ from deepsulci.sulci_labeling.method.cutting import cutting
 from deepsulci.deeptools.early_stopping import EarlyStopping
 
 from dataset_test import SulciDataset
+from fine_tunning import FineTunning
 
 class UnetTransferSulciLabelling(object):
 
@@ -69,6 +70,7 @@ class UnetTransferSulciLabelling(object):
                         'best_acc': [],
                         'best_epoch': [],
                         'num_epoch': [],
+                        'duration': [],
                         'graphs_train': [],
                         'graphs_test': []
                         }
@@ -222,6 +224,7 @@ class UnetTransferSulciLabelling(object):
             self.results['num_epoch'].append(num_epochs)
             self.results['graphs_test'].append(list(gfile_list_test))
             self.results['graphs_train'].append(list(gfile_list_train))
+            self.results['patience'] = patience
 
             log_dir = os.path.join(self.working_path + '/tensorboard/' + self.model_name)
             os.makedirs(log_dir, exist_ok=True)
@@ -237,8 +240,10 @@ class UnetTransferSulciLabelling(object):
 
         # early stopping
         if patience is not None:
-            #divide_lr = EarlyStopping(patience=patience)
+            fine_tunning = FineTunning(patience=patience, save=False)
             es_stop = EarlyStopping(patience=patience*2)
+
+        training_layers = ['final_conv']
 
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -268,7 +273,7 @@ class UnetTransferSulciLabelling(object):
 
                     if phase == 'train':
                         for name, parameters in self.model.named_parameters():
-                            if name == 'final_conv.weight' or name == 'final_conv.bias':
+                            if np.any([name.startswith(layer) for layer in training_layers]):
                                 parameters.requires_grad = True
                             else:
                                 parameters.requires_grad = False
@@ -315,23 +320,27 @@ class UnetTransferSulciLabelling(object):
                     best_epoch = epoch
                     best_model_wts = copy.deepcopy(self.model.state_dict())
 
+            print('Epoch took %i s.' % (time.time() - start_time))
+
+            # fine tunning
             # early_stopping
             if patience is not None:
                 es_stop(epoch_loss, self.model)
-                #divide_lr(epoch_loss, self.model)
+                fine_tunning(epoch_loss, self.model)
 
-                #if divide_lr.early_stop:
-                #    lr = lr / 2
-                #    print('\tDivide learning rate. New value: {}'.format(lr))
-                #    optimizer = optim.SGD(self.model.parameters(), lr=lr,
-                #                          momentum=momentum)
-                #    divide_lr = EarlyStopping(patience=patience)
+                if fine_tunning.ft_start:
+                    print('\nFine tunning')
+                    training_layers.append('decoders.2')
+                    training_layers.append('decoders.1')
+                    training_layers.append('decoders.0')
+                    lr = lr / 10
+                    print('Divide learning rate. New value: {}'.format(lr))
+                    optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
 
                 if es_stop.early_stop:
-                    print("Early stopping")
+                    print("\nEarly stopping")
                     break
 
-            print('Epoch took %i s.' % (time.time() - start_time))
             print('\n')
 
         time_elapsed = time.time() - since
@@ -342,6 +351,7 @@ class UnetTransferSulciLabelling(object):
         if save_results:
             self.results['best_acc'].append(best_acc)
             self.results['best_epoch'].append(best_epoch)
+            self.results['duration'].append(time_elapsed)
             writer.close()
 
         # load best model weights
@@ -510,6 +520,7 @@ class UnetTransferSulciLabelling(object):
                         'best_acc': [],
                         'best_epoch': [],
                         'num_epoch': [],
+                        'duration': [],
                         'threshold_scores': [],
                         'graphs_train': [],
                         'graphs_test': []

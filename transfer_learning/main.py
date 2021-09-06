@@ -58,8 +58,8 @@ if __name__ == '__main__':
                 notcut_graphs.append(s['notcut_graph'])
             else:
                 notcut_graphs = None
-                print('No not cut graphs')
-    print('graph loaded')
+                print('no not cut graphs')
+    print(len(graphs), 'graph loaded', sep=' ')
 
     #Récupération des données (sulci_side_list, dict_sulci, dict_names)
     path_to_data = working_path + '/data/' + cohort_file + '.json'
@@ -69,7 +69,7 @@ if __name__ == '__main__':
         print('data loaded')
     else:
         data = {}
-        print('No Data Found')
+        print('no data found')
 
     #Récupération du modèle
     print('\nLoading network\n')
