@@ -127,14 +127,14 @@ if __name__ == '__main__':
         best_threshold = -1
         best_mean = 0
         for th, scores in results['threshold_scores'].items():
-            mean_score = np.mean(scores)
-            if mean_score > best_mean:
-                best_threshold = th
-                best_mean = mean_score
-            elif mean_score == best_mean:
-                if isinstance(best_threshold, list):
-                    best_threshold.append(th)
-                else:
-                    best_threshold = [best_threshold, th]
-
-    print('Best threshold:', best_threshold)
+            for n, sc in enumerate(scores):
+                mean_score = np.mean(sc)
+                if mean_score > best_mean:
+                    best_threshold = th
+                    best_mean = mean_score
+                elif mean_score == best_mean:
+                    if isinstance(best_threshold, list):
+                        best_threshold.append(th)
+                    else:
+                        best_threshold = [best_threshold, th]
+                print('Training n°', n, ' | Best threshold:', best_threshold)

@@ -174,7 +174,7 @@ class UnetTransferSulciLabelling(object):
             for inputs, _ in valdataset:
                 size = inputs.size()
                 img_size = [np.max([img_size[i], size[i + 1]]) for i in range(len(img_size))]
-            print('Image size:', img_size, sep=' ')
+            print('Val dataset image size:', img_size, sep=' ')
             valdataset_resized = SulciDataset(
                 gfile_list_test, self.dict_sulci,
                 train=False, translation_file=self.trfile,
@@ -201,6 +201,7 @@ class UnetTransferSulciLabelling(object):
                 for inputs, _ in traindataset:
                     size = inputs.size()
                     img_size = [np.max([img_size[i], size[i + 1]]) for i in range(len(img_size))]
+            print('Train dataset image size:', img_size, sep=' ')
             traindataset_resized = SulciDataset(
                 gfile_list_train, self.dict_sulci,
                 train=True, translation_file=self.trfile,
@@ -361,7 +362,6 @@ class UnetTransferSulciLabelling(object):
         print('test thresholds')
         since = time.time()
         for th in threshold_range:
-            if th not in self.dict_scores.keys():
                 self.dict_scores[th] = []
 
         for gfile, gfile_notcut in zip(gfile_list_test, gfile_list_notcut_test):
@@ -417,7 +417,11 @@ class UnetTransferSulciLabelling(object):
                         names, ypred_cut, self.sslist)) * 100)
 
         if save_results:
-            self.results['threshold_scores'] = self.dict_scores
+            for th, sc in self.dict_scores.items():
+                if th in self.results['threshold_scores'].keys():
+                    self.results['threshold_scores'][th].append(sc)
+                else:
+                    self.results['threshold_scores'][th] = sc
 
         time_elapsed = time.time() - since
         print('Cutting complete in {:.0f}m {:.0f}s'.format(

@@ -333,8 +333,7 @@ class UnetTrainingSulciLabelling(object):
         print('test thresholds')
         since = time.time()
         for th in threshold_range:
-            if th not in self.dict_scores.keys():
-                self.dict_scores[th] = []
+            self.dict_scores[th] = []
 
         for gfile, gfile_notcut in zip(gfile_list_test, gfile_list_notcut_test):
             # extract data
@@ -389,7 +388,11 @@ class UnetTrainingSulciLabelling(object):
                         names, ypred_cut, self.sslist)) * 100)
 
         if save_results:
-            self.results['threshold_scores'] = self.dict_scores
+            for th, sc in self.dict_scores.items():
+                if th in self.results['threshold_scores'].keys():
+                    self.results['threshold_scores'][th].append(sc)
+                else:
+                    self.results['threshold_scores'][th] = sc
 
         time_elapsed = time.time() - since
         print('Cutting complete in {:.0f}m {:.0f}s'.format(
