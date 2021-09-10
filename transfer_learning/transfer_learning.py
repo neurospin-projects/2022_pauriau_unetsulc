@@ -170,15 +170,15 @@ class UnetTransferSulciLabelling(object):
                 valdataset, batch_size=batch_size,
                 shuffle=False, num_workers=0)
         else:
-            img_size = [0, 0, 0]
+            val_img_size = [0, 0, 0]
             for inputs, _ in valdataset:
                 size = inputs.size()
-                img_size = [np.max([img_size[i], size[i + 1]]) for i in range(len(img_size))]
-            print('Val dataset image size:', img_size, sep=' ')
+                val_img_size = [np.max([val_img_size[i], size[i + 1]]) for i in range(len(val_img_size))]
+            print('Val dataset image size:', val_img_size, sep=' ')
             valdataset_resized = SulciDataset(
                 gfile_list_test, self.dict_sulci,
                 train=False, translation_file=self.trfile,
-                dict_bck2=self.dict_bck2, dict_names=self.dict_names, img_size=img_size)
+                dict_bck2=self.dict_bck2, dict_names=self.dict_names, img_size=val_img_size)
             valloader = torch.utils.data.DataLoader(
                 valdataset_resized, batch_size=batch_size,
                 shuffle=False, num_workers=0)
@@ -196,16 +196,16 @@ class UnetTransferSulciLabelling(object):
         else:
             random.seed(42)
             np.random.seed(42)
-            img_size = [0, 0, 0]
+            train_img_size = [0, 0, 0]
             for _ in range(num_epochs):
                 for inputs, _ in traindataset:
                     size = inputs.size()
-                    img_size = [np.max([img_size[i], size[i + 1]]) for i in range(len(img_size))]
-            print('Train dataset image size:', img_size, sep=' ')
+                    img_size = [np.max([img_size[i], size[i + 1]]) for i in range(len(train_img_size))]
+            print('Train dataset image size:', train_img_size, sep=' ')
             traindataset_resized = SulciDataset(
                 gfile_list_train, self.dict_sulci,
                 train=True, translation_file=self.trfile,
-                dict_bck2=self.dict_bck2, dict_names=self.dict_names, img_size=img_size)
+                dict_bck2=self.dict_bck2, dict_names=self.dict_names, img_size=train_img_size)
             trainloader = torch.utils.data.DataLoader(
                 traindataset_resized, batch_size=batch_size,
                 shuffle=False, num_workers=0)
@@ -226,7 +226,13 @@ class UnetTransferSulciLabelling(object):
             self.results['graphs_test'].append(list(gfile_list_test))
             self.results['graphs_train'].append(list(gfile_list_train))
             self.results['patience'] = patience
-
+            if batch_size > 1:
+                if num_training == 0:
+                    self.results['train_iamge_size'] = [train_img_size]
+                    self.results['val_iamge_size'] = [val_img_size]
+                else:
+                    self.results['train_iamge_size'].append(train_img_size)
+                    self.results['val_iamge_size'].append(val_img_size)
             log_dir = os.path.join(self.working_path + '/tensorboard/' + self.model_name)
             os.makedirs(log_dir, exist_ok=True)
             writer = SummaryWriter(log_dir=log_dir+'/cv_'+str(num_training)) #, comment=)
@@ -527,7 +533,9 @@ class UnetTransferSulciLabelling(object):
                         'duration': [],
                         'threshold_scores': [],
                         'graphs_train': [],
-                        'graphs_test': []
+                        'graphs_test': [],
+                        'val_image_size': [],
+                        'train_image_size': []
                         }
 
     def load_saved_model(self, model_file):
