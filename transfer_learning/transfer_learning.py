@@ -120,7 +120,7 @@ class UnetTransferSulciLabelling(object):
         self.dict_names = dict_names
 
 
-    def load_model(self):
+    def load_model(self, model_file=None, param=None):
         # MODEL
         # Load file
         print('Network initialization...')
@@ -129,18 +129,19 @@ class UnetTransferSulciLabelling(object):
 
         torch.manual_seed(42)
 
-        if self.hemi == 'L':
-            model_file = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_left.mdsm'
-            with open(
-                    '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_left.json',
-                    'r') as f:
-                param = json.load(f)
-        else:
-            model_file = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_right.mdsm'
-            with open(
-                    '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_right.json',
-                    'r') as f:
-                param = json.load(f)
+        if model_file is None:
+            if self.hemi == 'L':
+                model_file = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_left.mdsm'
+                with open(
+                        '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_left.json',
+                        'r') as f:
+                    param = json.load(f)
+            else:
+                model_file = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_right.mdsm'
+                with open(
+                        '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_right.json',
+                        'r') as f:
+                    param = json.load(f)
 
         trained_sulci_side_list = param['sulci_side_list']
         trained_model = UNet3D(num_channel, len(trained_sulci_side_list), final_sigmoid=False,
@@ -151,7 +152,7 @@ class UnetTransferSulciLabelling(object):
         self.model = self.model.to(self.device)
 
 
-    def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, batch_size=1, patience=None, save_results=True):
+    def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, model_file=None, param=None, batch_size=1, patience=None, save_results=True):
 
         #Error
         if self.sulci_side_list is None or self.dict_bck2 is None or self.dict_bck2 is None:
@@ -213,7 +214,7 @@ class UnetTransferSulciLabelling(object):
             np.random.seed(42)
 
         # # MODEL # #
-        self.load_model()
+        self.load_model(model_file, param)
         optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=0)
         criterion = nn.CrossEntropyLoss(ignore_index=-1)
 
