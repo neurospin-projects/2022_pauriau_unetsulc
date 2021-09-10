@@ -497,19 +497,12 @@ class UnetTransferSulciLabelling(object):
             json.dump(self.results, f)
         print('Results saved')
 
-    def save_params(self, name=None):
+    def save_params(self, best_threshold=None, name=None):
         params = {'dict_bck2': self.dict_bck2,
                   'dict_names': self.dict_names,
                   'sulci_side_list': self.sulci_side_list
                  }
-        if 'threshold_scores' in self.results.keys():
-            best_threshold = -1
-            best_mean = 0
-            for th, scores in self.results['threshold_scores'].items():
-                mean_score = np.mean(scores)
-                if mean_score > best_mean:
-                    best_threshold = th
-                    best_mean = mean_score
+        if best_threshold is not None:
             params['cutting_threshold'] = best_threshold
         if name is None:
             path_to_save_params = self.working_path + '/models/' + self.model_name + '_params.json'
