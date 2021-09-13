@@ -485,6 +485,7 @@ class UnetTransferSulciLabelling(object):
         if name is None:
             path_to_save_model = self.working_path + '/models/' + self.model_name + '_model.mdsm'
         else:
+            os.makedirs(self.working_path + '/models/' + self.model_name + '/', exist_ok=True)
             path_to_save_model = self.working_path + '/models/' + self.model_name + '/' + name + '_model.mdsm'
         torch.save(self.model.state_dict(), path_to_save_model)
         print('Model saved')
