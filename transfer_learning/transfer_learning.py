@@ -71,7 +71,7 @@ class UnetTransferSulciLabelling(object):
                         'best_epoch': [],
                         'num_epoch': [],
                         'duration': [],
-                        'threshold_scores': [],
+                        'threshold_scores': {},
                         'graphs_train': [],
                         'graphs_test': []
                         }
@@ -526,7 +526,7 @@ class UnetTransferSulciLabelling(object):
                         'best_epoch': [],
                         'num_epoch': [],
                         'duration': [],
-                        'threshold_scores': [],
+                        'threshold_scores': {},
                         'graphs_train': [],
                         'graphs_test': [],
                         'val_image_size': [],

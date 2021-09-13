@@ -70,7 +70,7 @@ class UnetTrainingSulciLabelling(object):
                         'best_epoch': [],
                         'num_epoch': [],
                         'duration': [],
-                        'threshold_scores': [],
+                        'threshold_scores': {},
                         'graphs_train': [],
                         'graphs_test': []
                         }
@@ -502,7 +502,7 @@ class UnetTrainingSulciLabelling(object):
                         'best_epoch': [],
                         'num_epoch': [],
                         'duration': [],
-                        'threshold_scores': [],
+                        'threshold_scores': {},
                         'graphs_train': [],
                         'graphs_test': [],
                         'train_image_size':[],
