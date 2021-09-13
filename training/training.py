@@ -400,7 +400,7 @@ class UnetTrainingSulciLabelling(object):
                 if th in self.results['threshold_scores'].keys():
                     self.results['threshold_scores'][th].append(sc)
                 else:
-                    self.results['threshold_scores'][th] = sc
+                    self.results['threshold_scores'][th] = [sc]
 
         time_elapsed = time.time() - since
         print('Cutting complete in {:.0f}m {:.0f}s'.format(
