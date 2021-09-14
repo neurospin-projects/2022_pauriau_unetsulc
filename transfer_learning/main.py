@@ -93,9 +93,8 @@ if __name__ == '__main__':
     if notcut_graphs is not None:
         notcut_agraphs = np.asarray(notcut_graphs)
 
-    cvi = 1
-    for train, test in kf.split(graphs):
-        print('\n== Cross Validation {}/{} ==\n'.format(cvi, n_cvinner))
+    for cvi, (train, test) in enumerate(kf.split(graphs)):
+        print('\n== Cross Validation {}/{} ==\n'.format(cvi, n_cvinner-1))
         glist_train = agraphs[train]
         glist_test = agraphs[test]
 
@@ -109,8 +108,6 @@ if __name__ == '__main__':
                                    threshold_range=th_range)
 
         method.save_model(name=model_name+'_cv'+str(cvi))
-
-        cvi += 1
 
     method.save_results()
     cv_time = time.time() - start_time
@@ -135,8 +132,20 @@ if __name__ == '__main__':
                 elif sc > best_means[n]:
                     best_thresholds[n] = th
                     best_means[n] = sc
+                elif sc == best_means[n]:
+                    if isinstance(best_thresholds[n], list):
+                        best_thresholds[n].append(th)
+                    else:
+                        best_thresholds = [best_thresholds, th]
         for n, th in enumerate(best_thresholds):
             print('Training n°', n, ' | Best threshold:', th)
+            if isinstance(th, list):
+                th = np.random.choice(th)
+            method.save_params(name=model_name+'_cv'+str(cvi), best_threshold=th)
+        for th in best_thresholds:
+            if isinstance(th, list):
+                best_thresholds += th
+                best_thresholds.remove(th)
         best_th = max(set(best_thresholds), key=best_thresholds.count)
         method.save_params(best_th)
         print('\nBest Threshold: ', best_th)

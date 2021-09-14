@@ -113,6 +113,7 @@ class UnetTransferSulciLabelling(object):
                 sulci_side_list.add(n)
 
         self.sulci_side_list = sorted(list(sulci_side_list))
+        print(len(self.sulci_side_list), ' sulci detected')
         self.dict_sulci = {self.sulci_side_list[i]: i for i in range(len(sulci_side_list))}
         if 'background' not in self.dict_sulci:
             self.dict_sulci['background'] = -1
@@ -501,6 +502,7 @@ class UnetTransferSulciLabelling(object):
         print('Results saved')
 
     def save_params(self, best_threshold=None, name=None):
+        os.makedirs(self.working_path + '/models', exist_ok=True)
         params = {'dict_bck2': self.dict_bck2,
                   'dict_names': self.dict_names,
                   'sulci_side_list': self.sulci_side_list
@@ -510,6 +512,7 @@ class UnetTransferSulciLabelling(object):
         if name is None:
             path_to_save_params = self.working_path + '/models/' + self.model_name + '_params.json'
         else:
+            os.makedirs(self.working_path + '/models/' + self.model_name + '/', exist_ok=True)
             path_to_save_params = self.working_path + '/models/' + name + '_params.json'
         with open(path_to_save_params, 'w') as f:
             json.dump(params, f)
