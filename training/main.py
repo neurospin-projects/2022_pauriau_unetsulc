@@ -52,7 +52,7 @@ if __name__ == '__main__':
     notcut_graphs = []
     for s in cohort['subjects']:
         graphs.append(s['graph'])
-        if notcut_graphs is not None :
+        if notcut_graphs is not None:
             if s['notcut_graph'] is not None:
                 notcut_graphs.append(s['notcut_graph'])
             else:
@@ -142,7 +142,7 @@ if __name__ == '__main__':
             print('Training n°', n, ' | Best threshold:', th)
             if isinstance(th, list):
                 th = np.random.choice(th)
-            method.save_params(name=model_name + '_cv' + str(cvi), best_threshold=th)
+            method.save_params(best_threshold=th, name=model_name + '_cv' + str(cvi))
         for th in best_thresholds:
             if isinstance(th, list):
                 best_thresholds += th

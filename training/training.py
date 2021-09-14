@@ -484,7 +484,6 @@ class UnetTrainingSulciLabelling(object):
         if os.path.exists(self.working_path + '/models/' + self.model_name + '/'):
             path_to_save_params = self.working_path + '/models/' + self.model_name + '/'
         else:
-            os.makedirs(self.working_path + '/models/' + self.model_name + '/', exist_ok=True)
             path_to_save_params = self.working_path + '/models/'
         if name is None:
             path_to_save_params += self.model_name + '_params.json'

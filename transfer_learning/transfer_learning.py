@@ -509,11 +509,14 @@ class UnetTransferSulciLabelling(object):
                  }
         if best_threshold is not None:
             params['cutting_threshold'] = best_threshold
-        if name is None:
-            path_to_save_params = self.working_path + '/models/' + self.model_name + '_params.json'
+        if os.path.exists(self.working_path + '/models/' + self.model_name + '/'):
+            path_to_save_params = self.working_path + '/models/' + self.model_name + '/'
         else:
-            os.makedirs(self.working_path + '/models/' + self.model_name + '/', exist_ok=True)
-            path_to_save_params = self.working_path + '/models/' + name + '_params.json'
+            path_to_save_params = self.working_path + '/models/'
+        if name is None:
+            path_to_save_params += self.model_name + '_params.json'
+        else:
+            path_to_save_params += name + '_params.json'
         with open(path_to_save_params, 'w') as f:
             json.dump(params, f)
         print('Parameters saved')
