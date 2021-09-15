@@ -32,7 +32,8 @@ th_range = parameters['th_range']
 n_cvinner = parameters['n_cvinner']
 n_epochs = parameters['n_epochs']
 
-model_name = parameters['model_name']
+dict_model = parameters['dict_model']
+model_name = dict_model['model_name']
 print('Model name: ', model_name)
 
 if 'patience' in parameters.keys():
@@ -74,12 +75,12 @@ if __name__ == '__main__':
     #Récupération du modèle
     print('\nLoading network\n')
     if len(data) == 0:
-        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, model_name=model_name)
+        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, dict_model=dict_model)
         method.extract_data_from_graphs()
         method.save_data(name=cohort_file)
 
     else:
-        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, model_name=model_name,
+        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, dict_model=dict_model,
                                             dict_names=data['dict_names'], dict_bck2=data['dict_bck2'], sulci_side_list=data['sulci_side_list'])
 
     # # TRAINING # #

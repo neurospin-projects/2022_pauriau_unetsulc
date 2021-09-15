@@ -26,7 +26,7 @@ from fine_tunning import FineTunning
 
 class UnetTransferSulciLabelling(object):
 
-    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None, model_name=None,
+    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None, dict_model=None,
                  dict_names=None, dict_bck2=None, sulci_side_list=None):
 
         self.graphs = graphs
@@ -37,7 +37,7 @@ class UnetTransferSulciLabelling(object):
         self.dict_bck2 = dict_bck2
         self.dict_names = dict_names
         self.sulci_side_list = sulci_side_list
-        if sulci_side_list is not None :
+        if sulci_side_list is not None:
             self.dict_sulci = {sulci_side_list[i]: i for i in range(len(sulci_side_list))}
             if 'background' not in self.dict_sulci:
                 self.dict_sulci['background'] = -1
@@ -53,11 +53,58 @@ class UnetTransferSulciLabelling(object):
             self.working_path = os.getcwd()
         else:
             self.working_path = working_path
-        #model name
-        if model_name is None:
-            self.model_name = 'unknown_model'
+
+        #dict model
+        if 'name' in dict_model.keys():
+            self.model_name = dict_model['name']
         else:
-            self.model_name = model_name
+            self.model_name = 'unknown_model'
+        if 'in_channels' in dict_model.keys():
+            self.in_channels = dict_model['in_channels']
+        else:
+            self.in_channels = 1
+        if 'out_channels' in dict_model.keys():
+            self.out_channels = dict_model['in_channels']
+        else:
+            if self.hemi == 'L':
+                path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_left.json'
+            else:
+                path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_right.json'
+            param = json.load(open(path, 'r'))
+            trained_sulci_side_list = param['sulci_side_list']
+            self.out_channels = len(trained_sulci_side_list)
+        if 'final_sigmoid' in dict_model.keys():
+            self.final_sigmoid = dict_model['final_sigmoid']
+        else:
+            self.final_sigmoid = False
+        if 'interpolate' in dict_model.keys():
+            self.interpolate = dict_model['interpolate']
+        else:
+            self.interpolate = True
+        if 'conv_layer_order' in dict_model.keys():
+            self.conv_layer_order = dict_model['conv_layer_order']
+        else:
+            self.conv_layer_order = 'crg'
+        if 'init_channel_number' in dict_model.keys():
+            self.init_channel_number = dict_model['init_channel_number']
+        else:
+            self.init_channel_number = 64
+        if 'model_file' in dict_model.keys():
+            self.model_file = dict_model['model_file']
+        else:
+            if self.hemi == 'L':
+                self.model_file = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_left.mdsm'
+            else:
+                self.model_file = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_right.mdsm'
+        if 'training_layers' in dict_model.keys():
+            self.training_layers = dict_model['training_layers']
+        else:
+            self.training_layers = ['final_conv']
+        if 'fine_tunning_layers' in dict_model.keys():
+            self.fine_tunning_layers = dict_model['fine_tunning_layers']
+        else:
+            self.fine_tunning_layers = ['decoders.2', 'decoders.1', 'decoders.0']
+
 
         #results
         self.results = {'lr': [],
@@ -126,31 +173,14 @@ class UnetTransferSulciLabelling(object):
         # MODEL
         # Load file
         print('Network initialization...')
-        num_channel = 1
-        num_filter = 64
 
         torch.manual_seed(42)
 
-        if model_file is None:
-            if self.hemi == 'L':
-                model_file = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_left.mdsm'
-                with open(
-                        '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_left.json',
-                        'r') as f:
-                    param = json.load(f)
-            else:
-                model_file = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_right.mdsm'
-                with open(
-                        '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_right.json',
-                        'r') as f:
-                    param = json.load(f)
-
-        trained_sulci_side_list = param['sulci_side_list']
-        trained_model = UNet3D(num_channel, len(trained_sulci_side_list), final_sigmoid=False,
-                               init_channel_number=num_filter)
-        trained_model.load_state_dict(torch.load(model_file, map_location='cpu'))
+        trained_model = UNet3D(self.in_channels, self.out_channels, final_sigmoid=False, interpolate=self.interpolate,
+                               conv_layer_order=self.conv_layer_order, init_channel_number=self.init_channel_number)
+        trained_model.load_state_dict(torch.load(self.model_file, map_location='cpu'))
         self.model = copy.deepcopy(trained_model)
-        self.model.final_conv = nn.Conv3d(num_filter, len(self.sulci_side_list), 1)
+        self.model.final_conv = nn.Conv3d(self.init_channel_number, len(self.sulci_side_list), 1)
         self.model = self.model.to(self.device)
 
 
@@ -253,8 +283,6 @@ class UnetTransferSulciLabelling(object):
             fine_tunning = FineTunning(patience=patience, save=False)
             es_stop = EarlyStopping(patience=patience*2)
 
-        training_layers = ['final_conv']
-
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch, num_epochs - 1))
             print('-' * 10)
@@ -283,7 +311,7 @@ class UnetTransferSulciLabelling(object):
 
                     if phase == 'train':
                         for name, parameters in self.model.named_parameters():
-                            if np.any([name.startswith(layer) for layer in training_layers]):
+                            if np.any([name.startswith(layer) for layer in self.training_layers]):
                                 parameters.requires_grad = True
                             else:
                                 parameters.requires_grad = False
@@ -340,9 +368,7 @@ class UnetTransferSulciLabelling(object):
 
                 if fine_tunning.ft_start:
                     print('\nFine tunning')
-                    training_layers.append('decoders.2')
-                    training_layers.append('decoders.1')
-                    training_layers.append('decoders.0')
+                    self.training_layers += self.fine_tunning_layers
                     lr = lr / 10
                     print('Divide learning rate. New value: {}'.format(lr))
                     optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
