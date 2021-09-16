@@ -6,7 +6,7 @@ from transfer_learning import UnetTransferSulciLabelling
 import time
 import warnings
 
-warnings.simplefilter(action='ignore', category=UserWarning)
+warnings.filterwarnings(action='ignore', message='the number of', category=Warning)
 
 # Parameters
 with open('parameters.json', 'r') as f:

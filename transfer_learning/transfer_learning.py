@@ -56,7 +56,7 @@ class UnetTransferSulciLabelling(object):
 
         #dict model
         if 'model_name' in dict_model.keys():
-            self.model_name = dict_model['name']
+            self.model_name = dict_model['model_name']
         else:
             self.model_name = 'unknown_model'
         if 'in_channels' in dict_model.keys():
@@ -64,7 +64,12 @@ class UnetTransferSulciLabelling(object):
         else:
             self.in_channels = 1
         if 'out_channels' in dict_model.keys():
-            self.out_channels = dict_model['in_channels']
+            if isinstance(dict_model['out_channels'], int):
+                self.out_channels = dict_model['out_channels']
+            elif isinstance(dict_model['out_channels'], str):
+                param = json.load(open(dict_model['out_channels'], 'r'))
+                trained_sulci_side_list = param['sulci_side_list']
+                self.out_channels = len(trained_sulci_side_list)
         else:
             if self.hemi == 'L':
                 path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_left.json'
@@ -169,14 +174,14 @@ class UnetTransferSulciLabelling(object):
         self.dict_names = dict_names
 
 
-    def load_model(self, model_file=None, param=None):
+    def load_model(self):
         # MODEL
         # Load file
         print('Network initialization...')
 
         torch.manual_seed(42)
 
-        trained_model = UNet3D(self.in_channels, self.out_channels, final_sigmoid=False, interpolate=self.interpolate,
+        trained_model = UNet3D(self.in_channels, self.out_channels, final_sigmoid=self.final_sigmoid, interpolate=self.interpolate,
                                conv_layer_order=self.conv_layer_order, init_channel_number=self.init_channel_number)
         trained_model.load_state_dict(torch.load(self.model_file, map_location='cpu'))
         self.model = copy.deepcopy(trained_model)
@@ -184,7 +189,7 @@ class UnetTransferSulciLabelling(object):
         self.model = self.model.to(self.device)
 
 
-    def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, model_file=None, param=None, batch_size=1, patience=None, save_results=True):
+    def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, batch_size=1, patience={}, save_results=True):
 
         #Error
         if self.sulci_side_list is None or self.dict_bck2 is None or self.dict_bck2 is None:
@@ -246,7 +251,7 @@ class UnetTransferSulciLabelling(object):
             np.random.seed(42)
 
         # # MODEL # #
-        self.load_model(model_file, param)
+        self.load_model()
         optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=0)
         criterion = nn.CrossEntropyLoss(ignore_index=-1)
 
@@ -279,9 +284,10 @@ class UnetTransferSulciLabelling(object):
         best_epoch = 0
 
         # early stopping
-        if patience is not None:
-            fine_tunning = FineTunning(patience=patience, save=False)
-            es_stop = EarlyStopping(patience=patience*2)
+        if 'fine_tunning' in patience.keys():
+            fine_tunning = FineTunning(patience=patience['fine_tunning'], save=False)
+        if 'early_stopping' in patience.keys():
+            es_stop = EarlyStopping(patience=patience['early_stopping'])
 
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -361,18 +367,17 @@ class UnetTransferSulciLabelling(object):
             print('Epoch took %i s.' % (time.time() - start_time))
 
             # fine tunning
-            # early_stopping
-            if patience is not None:
-                es_stop(epoch_loss, self.model)
+            if 'fine_tunning' in patience.keys():
                 fine_tunning(epoch_loss, self.model)
-
                 if fine_tunning.ft_start:
                     print('\nFine tunning')
                     self.training_layers += self.fine_tunning_layers
                     lr = lr / 10
-                    print('Divide learning rate. New value: {}'.format(lr))
+                    print('Divide learning rate. New value: {}\n'.format(lr))
                     optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
-
+            # early_stopping
+            if 'early_stopping' in patience.keys():
+                es_stop(epoch_loss, self.model)
                 if es_stop.early_stop:
                     print("\nEarly stopping")
                     break
