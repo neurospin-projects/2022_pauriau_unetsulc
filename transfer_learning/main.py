@@ -142,7 +142,7 @@ if __name__ == '__main__':
             print('Training n°', n, ' | Best threshold:', th)
             if isinstance(th, list):
                 th = np.random.choice(th)
-            method.save_params(best_threshold=th, name=model_name+'_cv'+str(cvi))
+            method.save_params(best_threshold=th, name=model_name+'_cv'+str(n))
         for th in best_thresholds:
             if isinstance(th, list):
                 best_thresholds += th

@@ -26,7 +26,7 @@ from fine_tunning import FineTunning
 
 class UnetTransferSulciLabelling(object):
 
-    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None, dict_model=None,
+    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None, dict_model={},
                  dict_names=None, dict_bck2=None, sulci_side_list=None):
 
         self.graphs = graphs
@@ -55,7 +55,7 @@ class UnetTransferSulciLabelling(object):
             self.working_path = working_path
 
         #dict model
-        if 'name' in dict_model.keys():
+        if 'model_name' in dict_model.keys():
             self.model_name = dict_model['name']
         else:
             self.model_name = 'unknown_model'
@@ -233,7 +233,7 @@ class UnetTransferSulciLabelling(object):
             for _ in range(num_epochs):
                 for inputs, _ in traindataset:
                     size = inputs.size()
-                    img_size = [np.max([img_size[i], size[i + 1]]) for i in range(len(train_img_size))]
+                    train_img_size = [np.max([train_img_size[i], size[i + 1]]) for i in range(len(train_img_size))]
             print('Train dataset image size:', train_img_size, sep=' ')
             traindataset_resized = SulciDataset(
                 gfile_list_train, self.dict_sulci,
@@ -261,11 +261,11 @@ class UnetTransferSulciLabelling(object):
             self.results['patience'] = patience
             if batch_size > 1:
                 if num_training == 0:
-                    self.results['train_iamge_size'] = [train_img_size]
-                    self.results['val_iamge_size'] = [val_img_size]
+                    self.results['train_image_size'] = [int(i) for i in train_img_size]
+                    self.results['val_image_size'] = [int(i) for i in val_img_size]
                 else:
-                    self.results['train_iamge_size'].append(train_img_size)
-                    self.results['val_iamge_size'].append(val_img_size)
+                    self.results['train_image_size'].append([int(i) for i in train_img_size])
+                    self.results['val_image_size'].append([int(i) for i in val_img_size])
             log_dir = os.path.join(self.working_path + '/tensorboard/' + self.model_name)
             os.makedirs(log_dir, exist_ok=True)
             writer = SummaryWriter(log_dir=log_dir+'/cv_'+str(num_training)) #, comment=)
@@ -528,7 +528,6 @@ class UnetTransferSulciLabelling(object):
         print('Results saved')
 
     def save_params(self, best_threshold=None, name=None):
-        os.makedirs(self.working_path + '/models', exist_ok=True)
         params = {'dict_bck2': self.dict_bck2,
                   'dict_names': self.dict_names,
                   'sulci_side_list': self.sulci_side_list
