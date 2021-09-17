@@ -26,7 +26,7 @@ from fine_tunning import FineTunning
 
 class UnetTransferSulciLabelling(object):
 
-    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None, dict_model={},
+    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None, dict_model={}, dict_trained_model={},
                  dict_names=None, dict_bck2=None, sulci_side_list=None):
 
         self.graphs = graphs
@@ -55,52 +55,10 @@ class UnetTransferSulciLabelling(object):
             self.working_path = working_path
 
         #dict model
-        if 'model_name' in dict_model.keys():
-            self.model_name = dict_model['model_name']
+        if 'name' in dict_model.keys():
+            self.model_name = dict_model['name']
         else:
             self.model_name = 'unknown_model'
-        if 'in_channels' in dict_model.keys():
-            self.in_channels = dict_model['in_channels']
-        else:
-            self.in_channels = 1
-        if 'out_channels' in dict_model.keys():
-            if isinstance(dict_model['out_channels'], int):
-                self.out_channels = dict_model['out_channels']
-            elif isinstance(dict_model['out_channels'], str):
-                param = json.load(open(dict_model['out_channels'], 'r'))
-                trained_sulci_side_list = param['sulci_side_list']
-                self.out_channels = len(trained_sulci_side_list)
-        else:
-            if self.hemi == 'L':
-                path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_left.json'
-            else:
-                path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_right.json'
-            param = json.load(open(path, 'r'))
-            trained_sulci_side_list = param['sulci_side_list']
-            self.out_channels = len(trained_sulci_side_list)
-        if 'final_sigmoid' in dict_model.keys():
-            self.final_sigmoid = dict_model['final_sigmoid']
-        else:
-            self.final_sigmoid = False
-        if 'interpolate' in dict_model.keys():
-            self.interpolate = dict_model['interpolate']
-        else:
-            self.interpolate = True
-        if 'conv_layer_order' in dict_model.keys():
-            self.conv_layer_order = dict_model['conv_layer_order']
-        else:
-            self.conv_layer_order = 'crg'
-        if 'init_channel_number' in dict_model.keys():
-            self.init_channel_number = dict_model['init_channel_number']
-        else:
-            self.init_channel_number = 64
-        if 'model_file' in dict_model.keys():
-            self.model_file = dict_model['model_file']
-        else:
-            if self.hemi == 'L':
-                self.model_file = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_left.mdsm'
-            else:
-                self.model_file = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_right.mdsm'
         if 'training_layers' in dict_model.keys():
             self.training_layers = dict_model['training_layers']
         else:
@@ -110,6 +68,7 @@ class UnetTransferSulciLabelling(object):
         else:
             self.fine_tunning_layers = ['decoders.2', 'decoders.1', 'decoders.0']
 
+        self.dict_trained_model = dict_trained_model
 
         #results
         self.results = {'lr': [],
@@ -178,15 +137,47 @@ class UnetTransferSulciLabelling(object):
         # MODEL
         # Load file
         print('Network initialization...')
+        self.fill_dict_trained_model()
 
         torch.manual_seed(42)
 
-        trained_model = UNet3D(self.in_channels, self.out_channels, final_sigmoid=self.final_sigmoid, interpolate=self.interpolate,
-                               conv_layer_order=self.conv_layer_order, init_channel_number=self.init_channel_number)
-        trained_model.load_state_dict(torch.load(self.model_file, map_location='cpu'))
+        trained_model = UNet3D(self.dict_trained_model['in_channels'], self.dict_trained_model['out_channels'],
+                               final_sigmoid=self.dict_trained_model['final_sigmoid'], interpolate=self.dict_trained_model['interpolate'],
+                               conv_layer_order=self.dict_trained_model['conv_layer_order'], init_channel_number=self.dict_trained_model['init_channel_number'])
+        trained_model.load_state_dict(torch.load(self.dict_trained_model['model_file'], map_location='cpu'))
         self.model = copy.deepcopy(trained_model)
-        self.model.final_conv = nn.Conv3d(self.init_channel_number, len(self.sulci_side_list), 1)
+        self.model.final_conv = nn.Conv3d(self.dict_trained_model['init_channel_number'], len(self.sulci_side_list), 1)
         self.model = self.model.to(self.device)
+
+    def fill_dict_trained_model(self):
+        if 'in_channels' not in self.dict_trained_model.keys():
+            self.dict_trained_model['in_channels'] = 1
+        if 'out_channels' in self.dict_trained_model.keys():
+            if isinstance(self.dict_trained_model['out_channels'], str):
+                param = json.load(open(self.dict_trained_model['out_channels'], 'r'))
+                trained_sulci_side_list = param['sulci_side_list']
+                self.dict_trained_model['out_channels'] = len(trained_sulci_side_list)
+        else:
+            if self.hemi == 'L':
+                path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_left.json'
+            else:
+                path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_right.json'
+            param = json.load(open(path, 'r'))
+            trained_sulci_side_list = param['sulci_side_list']
+            self.dict_trained_model['out_channels'] = len(trained_sulci_side_list)
+        if 'final_sigmoid' not in self.dict_trained_model.keys():
+            self.dict_trained_model['final_sigmoid'] = False
+        if 'interpolate' not in self.dict_trained_model.keys():
+            self.dict_trained_model['interpolate'] = True
+        if 'conv_layer_order' not in self.dict_trained_model.keys():
+            self.dict_trained_model['conv_layer_order'] = 'crg'
+        if 'init_channel_number' not in self.dict_trained_model.keys():
+            self.dict_trained_model['init_channel_number'] = 64
+        if 'model_file' not in self.dict_trained_model.keys():
+            if self.hemi == 'L':
+                self.dict_trained_model['model_file'] = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_left.mdsm'
+            else:
+                self.dict_trained_model['model_file'] = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_right.mdsm'
 
 
     def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, batch_size=1, patience={}, save_results=True):

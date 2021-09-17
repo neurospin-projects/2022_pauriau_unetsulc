@@ -6,7 +6,7 @@ from transfer_learning import UnetTransferSulciLabelling
 import time
 import warnings
 
-warnings.filterwarnings(action='ignore', message='the number of', category=Warning)
+warnings.filterwarnings(action='ignore', message='the number of', category=UserWarning)
 
 # Parameters
 with open('parameters.json', 'r') as f:
@@ -33,7 +33,7 @@ n_cvinner = parameters['n_cvinner']
 n_epochs = parameters['n_epochs']
 
 dict_model = parameters['dict_model']
-model_name = dict_model['model_name']
+model_name = dict_model['name']
 print('Model name: ', model_name)
 
 if 'patience' in parameters.keys():
