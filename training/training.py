@@ -215,11 +215,11 @@ class UnetTrainingSulciLabelling(object):
             self.results['graphs_train'].append(list(gfile_list_train))
             if batch_size > 1:
                 if num_training == 0:
-                    self.results['train_iamge_size'] = [train_img_size]
-                    self.results['val_iamge_size'] = [val_img_size]
+                    self.results['train_image_size'] = [int(i) for i in train_img_size]
+                    self.results['val_image_size'] = [int(i) for i in val_img_size]
                 else:
-                    self.results['train_iamge_size'].append(train_img_size)
-                    self.results['val_iamge_size'].append(val_img_size)
+                    self.results['train_image_size'].append([int(i) for i in train_img_size])
+                    self.results['val_image_size'].append([int(i) for i in val_img_size])
 
             log_dir = os.path.join(self.working_path + '/tensorboard/' + self.model_name)
             os.makedirs(log_dir, exist_ok=True)
