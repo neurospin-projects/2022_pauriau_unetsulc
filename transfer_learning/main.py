@@ -122,12 +122,11 @@ if __name__ == '__main__':
     print('Mean accuracy: ', mean_acc)
 
     if notcut_graphs is not None:
-        best_thresholds = []
-        best_means = []
+        best_thresholds, best_means = [], []
         for th, scores in results['threshold_scores'].items():
             mean_scores = np.mean(scores, axis=1)
             for n, sc in enumerate(mean_scores):
-                if len(best_means) < n+1 :
+                if len(best_means) < n + 1:
                     best_means.append(sc)
                     best_thresholds.append(th)
                 elif sc > best_means[n]:
@@ -137,7 +136,7 @@ if __name__ == '__main__':
                     if isinstance(best_thresholds[n], list):
                         best_thresholds[n].append(th)
                     else:
-                        best_thresholds = [best_thresholds, th]
+                        best_thresholds[n] = [best_thresholds[n], th]
         for n, th in enumerate(best_thresholds):
             print('Training n°', n, ' | Best threshold:', th)
             if isinstance(th, list):
