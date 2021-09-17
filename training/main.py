@@ -146,6 +146,6 @@ if __name__ == '__main__':
             if isinstance(th, list):
                 best_thresholds += th
                 best_thresholds.remove(th)
-        best_th = max(set(best_thresholds), key=best_thresholds.count)
+        best_th = int(max(set(best_thresholds), key=best_thresholds.count))
         method.save_params(best_th)
         print('\nBest Threshold: ', best_th)
