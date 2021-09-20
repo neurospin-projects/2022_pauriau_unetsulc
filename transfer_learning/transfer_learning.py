@@ -90,6 +90,7 @@ class UnetTransferSulciLabelling(object):
                         'best_epoch': [],
                         'num_epoch': [],
                         'duration': [],
+                        'fine_tunning_epoch': [],
                         'threshold_scores': {},
                         'graphs_train': [],
                         'graphs_test': []
@@ -377,6 +378,8 @@ class UnetTransferSulciLabelling(object):
                     lr = lr / 10
                     print('Divide learning rate. New value: {}\n'.format(lr))
                     optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
+                    if save_results:
+                        self.results['fine_tunning_epoch'].append(epoch)
             # early_stopping
             if 'early_stopping' in patience.keys():
                 es_stop(epoch_loss, self.model)
@@ -564,6 +567,7 @@ class UnetTransferSulciLabelling(object):
                         'best_acc': [],
                         'best_epoch': [],
                         'num_epoch': [],
+                        'fine_tunning_epoch': [],
                         'duration': [],
                         'threshold_scores': {},
                         'graphs_train': [],
