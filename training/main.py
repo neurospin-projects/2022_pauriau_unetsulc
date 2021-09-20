@@ -38,7 +38,7 @@ print('model: ', model_name)
 if 'patience' in parameters.keys():
     patience = parameters['patience']
 else:
-    patience = None
+    patience = {}
 
 if __name__ == '__main__':
 

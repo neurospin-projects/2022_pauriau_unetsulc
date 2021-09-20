@@ -22,6 +22,7 @@ from deepsulci.sulci_labeling.method.cutting import cutting
 from deepsulci.deeptools.early_stopping import EarlyStopping
 
 from dataset_test import SulciDataset
+from divide_lr import DivideLr
 
 class UnetTrainingSulciLabelling(object):
 
@@ -155,7 +156,7 @@ class UnetTrainingSulciLabelling(object):
         self.model = self.model.to(self.device)
 
 
-    def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, batch_size=1, patience=None, save_results=True):
+    def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, batch_size=1, patience={}, save_results=True):
 
         #Error
         if self.sulci_side_list is None or self.dict_bck2 is None or self.dict_bck2 is None:
@@ -229,6 +230,7 @@ class UnetTrainingSulciLabelling(object):
             self.results['num_epoch'].append(num_epochs)
             self.results['graphs_test'].append(list(gfile_list_test))
             self.results['graphs_train'].append(list(gfile_list_train))
+            self.results['patience'] = patience
             if batch_size > 1:
                 if num_training == 0:
                     self.results['train_image_size'] = [int(i) for i in train_img_size]
@@ -242,9 +244,11 @@ class UnetTrainingSulciLabelling(object):
             writer = SummaryWriter(log_dir=log_dir+'/cv'+str(num_training)) #, comment=)
 
         # early stopping
-        if patience is not None:
-            #divide_lr = EarlyStopping(patience=patience)
-            es_stop = EarlyStopping(patience=patience*2)
+        if "early_stopping" in patience.keys():
+            es_stop = EarlyStopping(patience=patience['early_stopping'])
+        if "divide_lr" in patience.keys():
+            divide_lr = DivideLr(patience=patience['divide_lr'])
+
 
         # # TRAINING # #
         print('training...')
@@ -321,18 +325,16 @@ class UnetTrainingSulciLabelling(object):
                     best_epoch = epoch
                     best_model_wts = copy.deepcopy(self.model.state_dict())
 
+            # divide_lr
+            if 'divide_lr' in patience.keys():
+                divide_lr(epoch_loss, self.model)
+                if divide_lr.divide_lr:
+                    lr = lr / 10
+                    print('\tDivide learning rate. New value: {}'.format(lr))
+                    optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum)
             # early_stopping
-            if patience is not None:
+            if "early_stopping" in patience.keys():
                 es_stop(epoch_loss, self.model)
-                #divide_lr(epoch_loss, self.model)
-
-                #if divide_lr.early_stop:
-                #    lr = lr / 2
-                #    print('\tDivide learning rate. New value: {}'.format(lr))
-                #    optimizer = optim.SGD(self.model.parameters(), lr=lr,
-                #                          momentum=momentum)
-                #    divide_lr = EarlyStopping(patience=patience)
-
                 if es_stop.early_stop:
                     print("Early stopping")
                     break
