@@ -25,7 +25,7 @@ from dataset_test import SulciDataset
 
 class UnetTrainingSulciLabelling(object):
 
-    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None, model_name=None,
+    def __init__(self, graphs, hemi, translation_file, cuda=-1, working_path=None, dict_model={},
                  dict_names=None, dict_bck2=None, sulci_side_list=None):
 
         self.graphs = graphs
@@ -52,10 +52,32 @@ class UnetTrainingSulciLabelling(object):
             self.working_path = os.getcwd()
         else:
             self.working_path = working_path
-        if model_name is None:
-            self.model_name = 'unknown_model'
+
+        #dict_model
+        if 'name' in dict_model.keys():
+            self.model_name = dict_model['name']
         else:
-            self.model_name = model_name
+            self.model_name = 'unknown_model'
+        if 'num_filter' in dict_model.keys():
+            self.num_filter = dict_model['num_filter']
+        else:
+            self.num_filter = 64
+        if 'num_channel' in dict_model.keys():
+            self.num_channel = dict_model['num_channel']
+        else:
+            self.num_channel = 1
+        if 'interpolate' in dict_model.keys():
+            self.interpolate = dict_model['interpolate']
+        else:
+            self.interpolate = True
+        if 'final_sigmoid' in dict_model.keys():
+            self.final_sigmoid = dict_model['final_sigmoid']
+        else:
+            self.final_sigmoid = False
+        if 'conv_layer_order' in dict_model.keys():
+            self.conv_layer_order = dict_model['conv_layer_order']
+        else:
+            self.conv_layer_order = 'crg'
 
 
         #results
@@ -122,17 +144,14 @@ class UnetTrainingSulciLabelling(object):
         self.dict_names = dict_names
 
 
-    def load_model(self, order='crg'):
+    def load_model(self):
         # MODEL
         # Load file
         print('Network initialization...')
-        num_channel = 1
-        num_filter = 64
 
-        self.model = UNet3D(num_channel,  len(self.sulci_side_list), final_sigmoid=False,
-                            interpolate=True, dropout=0., conv_layer_order=order,
-                            init_channel_number=num_filter)
-
+        self.model = UNet3D(self.num_channel,  len(self.sulci_side_list), final_sigmoid=self.final_sigmoid,
+                            interpolate=self.interpolate, dropout=0., conv_layer_order=self.conv_layer_order,
+                            init_channel_number=self.num_filter)
         self.model = self.model.to(self.device)
 
 
@@ -198,10 +217,7 @@ class UnetTrainingSulciLabelling(object):
             random.seed(42)
 
         # # MODEL # #
-        if batch_size == 1:
-            self.load_model()
-        else:
-            self.load_model(order='crb')
+        self.load_model()
         optimizer = optim.SGD(self.model.parameters(), lr=lr, momentum=momentum, weight_decay=0)
         criterion = nn.CrossEntropyLoss(ignore_index=-1)
 
