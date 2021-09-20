@@ -67,6 +67,14 @@ class UnetTransferSulciLabelling(object):
             self.fine_tunning_layers = dict_model['fine_tunning_layers']
         else:
             self.fine_tunning_layers = ['decoders.2', 'decoders.1', 'decoders.0']
+        if 'num_filter' in dict_model.keys():
+            self.num_filter = dict_model['num_filter']
+        else:
+            self.num_filter = 64
+        if 'num_conv' in dict_model.keys():
+            self.num_conv = dict_model['num_conv']
+        else:
+            self.num_conv = 1
 
         self.dict_trained_model = dict_trained_model
 
@@ -146,7 +154,10 @@ class UnetTransferSulciLabelling(object):
                                conv_layer_order=self.dict_trained_model['conv_layer_order'], init_channel_number=self.dict_trained_model['init_channel_number'])
         trained_model.load_state_dict(torch.load(self.dict_trained_model['model_file'], map_location='cpu'))
         self.model = copy.deepcopy(trained_model)
-        self.model.final_conv = nn.Conv3d(self.dict_trained_model['init_channel_number'], len(self.sulci_side_list), 1)
+        if self.num_conv > 1:
+            self.model.final_conv = ConvNet(self.dict_trained_model['init_channel_number'], len(self.sulci_side_list), self.num_conv)
+        else:
+            self.model.final_conv = nn.Conv3d(self.dict_trained_model['init_channel_number'], len(self.sulci_side_list), 1)
         self.model = self.model.to(self.device)
 
     def fill_dict_trained_model(self):
@@ -566,3 +577,18 @@ class UnetTransferSulciLabelling(object):
         self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
         self.model.to(self.device)
         print("Model Loaded !")
+
+
+class ConvNet(nn.Module):
+    def __init__(self, in_channels, out_channels, num_conv):
+        super(ConvNet, self).__init__()
+
+        fac = (in_channels - out_channels) / (num_conv + 1)
+        self.conv_layers = nn.ModuleList([nn.Conv3d(
+            in_channels - round(n * fac),
+            in_channels - round((n + 1) * fac), 1) for n in range(num_conv + 1)])
+
+    def forward(self, x):
+        for conv in self.conv_layers:
+            x = conv(x)
+        return x
