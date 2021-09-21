@@ -33,13 +33,13 @@ n_cvinner = parameters['n_cvinner']
 n_epochs = parameters['n_epochs']
 
 dict_model = parameters['dict_model']
-model_name = dict_model['name']
-print('Model name: ', model_name)
+name = dict_model['name']
+print('Model name: ', name)
 
 if 'patience' in parameters.keys():
     patience = parameters['patience']
 else:
-    patience = None
+    patience = {}
 
 if __name__ == '__main__':
 
@@ -63,13 +63,14 @@ if __name__ == '__main__':
     print(len(graphs), 'graph loaded', sep=' ')
 
     #Test hyperparameters
-    for nconv in [2, 4, 6]:
+    for nconv in [4, 6]:
         print('# -- ' * 6 + '#')
         print('\t Test Hyperparameter:')
         print('\t Num conv = ', nconv)
         print('# -- ' * 6 + '#')
         dict_model['num_conv'] = nconv
-        dict_model['name'] = dict_model['name'][:-1] + str(nconv)
+        dict_model['name'] = name + str(nconv)
+        model_name = dict_model['name']
 
         #Récupération des données (sulci_side_list, dict_sulci, dict_names)
         path_to_data = working_path + '/data/' + cohort_file + '.json'
