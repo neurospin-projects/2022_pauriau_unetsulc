@@ -63,7 +63,7 @@ if __name__ == '__main__':
     print(len(graphs), 'graph loaded', sep=' ')
 
     #Test hyperparameters
-    for nconv in [4, 6]:
+    for nconv in [4, 6, 1]:
         print('# -- ' * 6 + '#')
         print('\t Test Hyperparameter:')
         print('\t Num conv = ', nconv)
