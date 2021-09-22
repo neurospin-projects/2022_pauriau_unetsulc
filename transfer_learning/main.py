@@ -5,11 +5,18 @@ from sklearn.model_selection import KFold, train_test_split
 from transfer_learning import UnetTransferSulciLabelling
 import time
 import warnings
+import argparse
 
 warnings.filterwarnings(action='ignore', message='the number of', category=UserWarning)
 
 # Parameters
-with open('parameters.json', 'r') as f:
+parser = argparse.ArgumentParser(description='Train UNET model')
+parser.add_argument('-p', dest='parameters', type=str, default=None, required=False,
+                    help='Parameter file')
+args = parser.parse_args()
+# Load parameter file
+path_to_parameters = args.parameters if args.parameters else os.path.join(os.path.split(__file__)[0], 'parameters.json')
+with open(path_to_parameters, 'r') as f:
     parameters = json.load(f)
 
 working_path = parameters['working_path']
@@ -39,7 +46,7 @@ print('Model name: ', model_name)
 if 'patience' in parameters.keys():
     patience = parameters['patience']
 else:
-    patience = None
+    patience = {}
 
 if __name__ == '__main__':
 
