@@ -190,6 +190,7 @@ class UnetTransferSulciLabelling(object):
                 dict_model['model_file'] = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_left.mdsm'
             else:
                 dict_model['model_file'] = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_right.mdsm'
+        return dict_model
 
 
     def learning(self, lr, momentum, num_epochs, gfile_list_train, gfile_list_test, batch_size=1, patience={}, save_results=True):
