@@ -63,7 +63,7 @@ if __name__ == '__main__':
     print(len(graphs), 'graph loaded', sep=' ')
 
     #Test hyperparameters
-    for nconv in [4, 6, 1]:
+    for nconv in [6, 1]:
         print('# -- ' * 6 + '#')
         print('\t Test Hyperparameter:')
         print('\t Num conv = ', nconv)
@@ -134,7 +134,7 @@ if __name__ == '__main__':
         if notcut_graphs is not None:
             best_thresholds, best_means = [], []
             for th, scores in results['threshold_scores'].items():
-                mean_scores = np.mean(scores, axis=1)
+                mean_scores = [np.mean(scores[i]) for i in range(len(scores))]
                 for n, sc in enumerate(mean_scores):
                     if len(best_means) < n + 1:
                         best_means.append(sc)
