@@ -190,6 +190,8 @@ class UnetTransferSulciLabelling(object):
                 dict_model['model_file'] = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_left.mdsm'
             else:
                 dict_model['model_file'] = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_right.mdsm'
+        if 'num_conv' not in dict_model.keys():
+            dict_model['num_conv'] = 1
         return dict_model
 
 
@@ -585,9 +587,9 @@ class UnetTransferSulciLabelling(object):
                                interpolate=dict_model['interpolate'],
                                conv_layer_order=dict_model['conv_layer_order'],
                                init_channel_number=dict_model['init_channel_number'])
-        if self.num_conv > 1:
+        if dict_model['num_conv'] > 1:
             self.model.final_conv = ConvNet(dict_model['init_channel_number'], dict_model['out_channels'],
-                                            self.num_conv)
+                                            dict_model['num_conv'])
         else:
             self.model.final_conv = nn.Conv3d(dict_model['init_channel_number'], dict_model['out_channels'],
                                               1)
