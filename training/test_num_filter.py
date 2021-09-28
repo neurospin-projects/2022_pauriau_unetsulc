@@ -32,8 +32,8 @@ n_cvinner = parameters['n_cvinner']
 n_epochs = parameters['n_epochs']
 
 dict_model = parameters['dict_model']
-model_name = dict_model['name']
-print('model: ', model_name)
+name = dict_model['name']
+print('model: ', name)
 
 if 'patience' in parameters.keys():
     patience = parameters['patience']
@@ -68,7 +68,7 @@ if __name__ == '__main__':
         print('\t Number of Filters = ', nfilter)
         print('# -- ' * 6 + '#')
         dict_model['num_filter'] = nfilter
-        dict_model['name'] = dict_model[:-1] + str(nfilter)
+        dict_model['name'] = name + str(nfilter)
         model_name = dict_model['name']
 
         #Récupération des données (sulci_side_list, dict_sulci, dict_names)
@@ -135,7 +135,7 @@ if __name__ == '__main__':
         if notcut_graphs is not None:
             best_thresholds, best_means = [], []
             for th, scores in results['threshold_scores'].items():
-                mean_scores = np.mean(scores, axis=1)
+                mean_scores = [np.mean(scores[i]) for i in range(len(scores))]
                 for n, sc in enumerate(mean_scores):
                     if len(best_means) < n + 1:
                         best_means.append(sc)
