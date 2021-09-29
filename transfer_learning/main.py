@@ -131,7 +131,7 @@ if __name__ == '__main__':
     if notcut_graphs is not None:
         best_thresholds, best_means = [], []
         for th, scores in results['threshold_scores'].items():
-            mean_scores = np.mean(scores, axis=1)
+            mean_scores = [np.mean(scores[i]) for i in range(len(scores))]
             for n, sc in enumerate(mean_scores):
                 if len(best_means) < n + 1:
                     best_means.append(sc)
@@ -147,7 +147,7 @@ if __name__ == '__main__':
         for n, th in enumerate(best_thresholds):
             print('Training n°', n, ' | Best threshold:', th)
             if isinstance(th, list):
-                th = np.random.choice(th)
+                th = int(np.random.choice(th))
             method.save_params(best_threshold=th, name=model_name+'_cv'+str(n))
         for th in best_thresholds:
             if isinstance(th, list):
