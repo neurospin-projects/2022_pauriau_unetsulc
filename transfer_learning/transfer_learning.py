@@ -156,7 +156,12 @@ class UnetTransferSulciLabelling(object):
         trained_model.load_state_dict(torch.load(self.dict_trained_model['model_file'], map_location='cpu'))
         self.model = copy.deepcopy(trained_model)
         if self.num_conv > 1:
-            self.model.final_conv = ConvNet(self.dict_trained_model['init_channel_number'], len(self.sulci_side_list), self.num_conv)
+            fac = (self.dict_trained_model['init_channel_number'] - len(self.sulci_side_list)) / self.num_conv
+            num_channel = self.dict_trained_model['init_channel_number']
+            self.model.final_conv = nn.Sequential()
+            for n in range(self.num_conv):
+                self.model.final_conv.add_module(str(n), nn.Conv3d(num_channel - round(n * fac), num_channel  - round((n + 1) * fac), 1))
+            print(self.model.final_conv)
         else:
             self.model.final_conv = nn.Conv3d(self.dict_trained_model['init_channel_number'], len(self.sulci_side_list), 1)
         self.model = self.model.to(self.device)
@@ -596,18 +601,3 @@ class UnetTransferSulciLabelling(object):
         self.model.load_state_dict(torch.load(dict_model['model_file'], map_location='cpu'))
         self.model.to(self.device)
         print("Model Loaded !")
-
-
-class ConvNet(nn.Module):
-    def __init__(self, in_channels, out_channels, num_conv):
-        super(ConvNet, self).__init__()
-
-        fac = (in_channels - out_channels) / (num_conv + 1)
-        self.conv_layers = nn.ModuleList([nn.Conv3d(
-            in_channels - round(n * fac),
-            in_channels - round((n + 1) * fac), 1) for n in range(num_conv + 1)])
-
-    def forward(self, x):
-        for conv in self.conv_layers:
-            x = conv(x)
-        return x
