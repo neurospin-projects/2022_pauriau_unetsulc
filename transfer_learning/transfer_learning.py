@@ -174,14 +174,14 @@ class UnetTransferSulciLabelling(object):
                 param = json.load(open(dict_model['out_channels'], 'r'))
                 trained_sulci_side_list = param['sulci_side_list']
                 dict_model['out_channels'] = len(trained_sulci_side_list)
-        else:
-            if self.hemi == 'L':
-                path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_left.json'
             else:
-                path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_right.json'
-            param = json.load(open(path, 'r'))
-            trained_sulci_side_list = param['sulci_side_list']
-            dict_model['out_channels'] = len(trained_sulci_side_list)
+                if self.hemi == 'L':
+                    path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_left.json'
+                else:
+                    path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_right.json'
+                param = json.load(open(path, 'r'))
+                trained_sulci_side_list = param['sulci_side_list']
+                dict_model['out_channels'] = len(trained_sulci_side_list)
         if 'final_sigmoid' not in dict_model.keys():
             dict_model['final_sigmoid'] = False
         if 'interpolate' not in dict_model.keys():
