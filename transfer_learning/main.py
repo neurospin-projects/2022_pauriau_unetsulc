@@ -43,6 +43,8 @@ dict_model = parameters['dict_model']
 model_name = dict_model['name']
 print('Model name: ', model_name)
 
+dict_trained_model = parameters['dict_trained_model']
+
 if 'patience' in parameters.keys():
     patience = parameters['patience']
 else:
@@ -82,12 +84,12 @@ if __name__ == '__main__':
     #Récupération du modèle
     print('\nLoading network\n')
     if len(data) == 0:
-        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, dict_model=dict_model)
+        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, dict_model=dict_model, dict_trained_model=dict_trained_model)
         method.extract_data_from_graphs()
         method.save_data(name=cohort_file)
 
     else:
-        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, dict_model=dict_model,
+        method = UnetTransferSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, dict_model=dict_model, dict_trained_model=dict_trained_model,
                                             dict_names=data['dict_names'], dict_bck2=data['dict_bck2'], sulci_side_list=data['sulci_side_list'])
 
     # # TRAINING # #
