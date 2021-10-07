@@ -163,7 +163,6 @@ class UnetTransferSulciLabelling(object):
             self.model.final_conv = nn.Sequential()
             for n in range(self.num_conv):
                 self.model.final_conv.add_module(str(n), nn.Conv3d(num_channel - round(n * fac), num_channel  - round((n + 1) * fac), 1))
-            print(self.model.final_conv)
         else:
             self.model.final_conv = nn.Conv3d(self.dict_trained_model['init_channel_number'], len(self.sulci_side_list), 1)
         self.model = self.model.to(self.device)
@@ -595,8 +594,11 @@ class UnetTransferSulciLabelling(object):
                                conv_layer_order=dict_model['conv_layer_order'],
                                init_channel_number=dict_model['init_channel_number'])
         if dict_model['num_conv'] > 1:
-            self.model.final_conv = ConvNet(dict_model['init_channel_number'], dict_model['out_channels'],
-                                            dict_model['num_conv'])
+            fac = (dict_model['init_channel_number'] - dict_model['out_channels']) / dict_model['num_conv']
+            num_channel = dict_model['init_channel_number']
+            self.model.final_conv = nn.Sequential()
+            for n in range(self.num_conv):
+                self.model.final_conv.add_module(str(n), nn.Conv3d(num_channel - round(n * fac), num_channel  - round((n + 1) * fac), 1))
         else:
             self.model.final_conv = nn.Conv3d(dict_model['init_channel_number'], dict_model['out_channels'],
                                               1)
