@@ -247,7 +247,7 @@ class UnetTrainingSulciLabelling(object):
         if "early_stopping" in patience.keys():
             es_stop = EarlyStopping(patience=patience['early_stopping'])
         if "divide_lr" in patience.keys():
-            divide_lr = DivideLr(patience=patience['divide_lr'])
+            divide_lr = DivideLr(patience=patience['divide_lr'], repeat=5)
 
 
         # # TRAINING # #
@@ -425,17 +425,18 @@ class UnetTrainingSulciLabelling(object):
         print('Cutting complete in {:.0f}m {:.0f}s'.format(
             time_elapsed // 60, time_elapsed % 60))
 
-    def labeling(self, gfile):
+    def labeling(self, gfile, bck2=None, names=None, imgsize=None):
         print('Labeling', gfile)
-
         self.model = self.model.to(self.device)
         self.model.eval()
-        bck2 = self.dict_bck2[gfile]
-        names = self.dict_names[gfile]
+        if bck2 is None:
+            bck2 = self.dict_bck2[gfile]
+        if names is None:
+            names = self.dict_names[gfile]
         dataset = SulciDataset(
             [gfile], self.dict_sulci, train=False,
             translation_file=self.trfile,
-            dict_bck2={gfile: bck2}, dict_names={gfile: names})
+            dict_bck2={gfile: bck2}, dict_names={gfile: names}, img_size=imgsize)
         data = dataset[0]
 
         with torch.no_grad():
@@ -530,14 +531,56 @@ class UnetTrainingSulciLabelling(object):
                         'val_image_size': []
                         }
 
-    def load_saved_model(self, model_file):
+    def fill_dict_model(self, dict_model):
+        if 'in_channels' not in dict_model.keys():
+            dict_model['in_channels'] = 1
+        if 'out_channels' in dict_model.keys():
+            if isinstance(dict_model['out_channels'], str):
+                param = json.load(open(dict_model['out_channels'], 'r'))
+                trained_sulci_side_list = param['sulci_side_list']
+                dict_model['out_channels'] = len(trained_sulci_side_list)
+        else:
+            if self.hemi == 'L':
+                path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_left.json'
+            else:
+                path = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_params_right.json'
+            param = json.load(open(path, 'r'))
+            trained_sulci_side_list = param['sulci_side_list']
+            dict_model['out_channels'] = len(trained_sulci_side_list)
+        if 'final_sigmoid' not in dict_model.keys():
+            dict_model['final_sigmoid'] = False
+        if 'interpolate' not in dict_model.keys():
+            dict_model['interpolate'] = True
+        if 'conv_layer_order' not in dict_model.keys():
+            dict_model['conv_layer_order'] = 'crg'
+        if 'init_channel_number' not in dict_model.keys():
+            dict_model['init_channel_number'] = 64
+        if 'model_file' not in dict_model.keys():
+            if self.hemi == 'L':
+                dict_model['model_file'] = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_left.mdsm'
+            else:
+                dict_model['model_file'] = '/casa/host/build/share/brainvisa-share-5.1/models/models_2019/cnn_models/sulci_unet_model_right.mdsm'
+        if 'num_conv' not in dict_model.keys():
+            dict_model['num_conv'] = 1
+        return dict_model
 
-        self.load_model()
-        self.load_model('crb')
-        try:
-            self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
-        except RuntimeError:
-            self.load_model('crb')
-            self.model.load_state_dict(torch.load(model_file, map_location='cpu'))
+    def load_saved_model(self, dict_model):
+        dict_model = self.fill_dict_model(dict_model)
+
+        self.model = UNet3D(dict_model['in_channels'], dict_model['out_channels'],
+                               final_sigmoid=dict_model['final_sigmoid'],
+                               interpolate=dict_model['interpolate'],
+                               conv_layer_order=dict_model['conv_layer_order'],
+                               init_channel_number=dict_model['init_channel_number'])
+        if dict_model['num_conv'] > 1:
+            fac = (dict_model['init_channel_number'] - dict_model['out_channels']) / dict_model['num_conv']
+            num_channel = dict_model['init_channel_number']
+            self.model.final_conv = nn.Sequential()
+            for n in range(self.num_conv):
+                self.model.final_conv.add_module(str(n), nn.Conv3d(num_channel - round(n * fac), num_channel  - round((n + 1) * fac), 1))
+        else:
+            self.model.final_conv = nn.Conv3d(dict_model['init_channel_number'], dict_model['out_channels'],
+                                              1)
+        self.model.load_state_dict(torch.load(dict_model['model_file'], map_location='cpu'))
         self.model.to(self.device)
         print("Model Loaded !")
