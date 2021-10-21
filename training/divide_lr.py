@@ -31,9 +31,8 @@ class DivideLr(object):
 
     def __call__(self, val_loss, model):
 
-        if self.stop:
-            self.divide_lr = False
-        else:
+        self.divide_lr = False
+        if not self.stop:
             score = -val_loss
             if self.best_score is None:
                 self.best_score = score
