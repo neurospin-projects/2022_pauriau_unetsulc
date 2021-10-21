@@ -46,6 +46,7 @@ class DivideLr(object):
                 if self.counter >= self.patience:
                     self.divide_lr = True
                     self.repeat -= 1
+                    self.counter = 0
             else:
                 self.best_score = score
                 if self.save:
