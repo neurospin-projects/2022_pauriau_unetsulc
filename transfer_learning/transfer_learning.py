@@ -381,6 +381,9 @@ class UnetTransferSulciLabelling(object):
             # fine tunning
             if 'fine_tunning' in patience.keys():
                 fine_tunning(epoch_loss, self.model)
+                if epoch == int(0.8*num_epochs):
+                    fine_tunning.ft_start = True
+                    fine_tunning.stop = True
                 if fine_tunning.ft_start:
                     print('\nFine tunning')
                     self.training_layers += self.fine_tunning_layers
