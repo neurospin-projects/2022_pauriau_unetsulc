@@ -5,10 +5,18 @@ from sklearn.model_selection import KFold, train_test_split
 from training import UnetTrainingSulciLabelling
 import time
 import warnings
+import argparse
 
 warnings.filterwarnings(action='ignore', message='the number of', category=UserWarning)
+
 # Parameters
-with open('parameters.json', 'r') as f:
+parser = argparse.ArgumentParser(description='Train UNET model')
+parser.add_argument('-p', dest='parameters', type=str, default=None, required=False,
+                    help='Parameter file')
+args = parser.parse_args()
+# Load parameter file
+path_to_parameters = args.parameters if args.parameters else os.path.join(os.path.split(__file__)[0], 'parameters.json')
+with open(path_to_parameters, 'r') as f:
     parameters = json.load(f)
 
 working_path = parameters['working_path']
@@ -72,7 +80,7 @@ if __name__ == '__main__':
         model_name = dict_model['name']
 
         #Récupération des données (sulci_side_list, dict_sulci, dict_names)
-        path_to_data = working_path + '/data/' + cohort_file +'.json'
+        path_to_data = working_path + '/data/' + cohort_file + '.json'
         if os.path.exists(path_to_data):
             with open(path_to_data, 'r') as f:
                 data = json.load(f)
@@ -81,23 +89,25 @@ if __name__ == '__main__':
             data = {}
             print('No Data Found')
 
-        #Récupération du modèle
+        # Récupération du modèle
         print('\nLoading network\n')
         if len(data) == 0:
-            method = UnetTrainingSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, dict_model=dict_model)
+            method = UnetTrainingSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path,
+                                                dict_model=dict_model)
             method.extract_data_from_graphs()
             method.save_data(name=cohort_file)
 
         else:
-            method = UnetTrainingSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path, dict_model=dict_model,
-                                            dict_names=data['dict_names'], dict_bck2=data['dict_bck2'], sulci_side_list=data['sulci_side_list'])
-
+            method = UnetTrainingSulciLabelling(graphs, hemi, translation_file, cuda=cuda, working_path=working_path,
+                                                dict_model=dict_model,
+                                                dict_names=data['dict_names'], dict_bck2=data['dict_bck2'],
+                                                sulci_side_list=data['sulci_side_list'])
 
         # # TRAINING # #
         print('\n----- Learning -----')
         start_time = time.time()
 
-        #Cross Validation pour déterminer la performance du modèle
+        # Cross Validation pour déterminer la performance du modèle
         kf = KFold(n_splits=n_cvinner, shuffle=True, random_state=0)
         agraphs = np.asarray(graphs)
 
@@ -105,12 +115,12 @@ if __name__ == '__main__':
             notcut_agraphs = np.asarray(notcut_graphs)
 
         for cvi, (train, test) in enumerate(kf.split(graphs)):
-            print('\n== Cross Validation {}/{} ==\n'.format(cvi, n_cvinner-1))
+            print('\n== Cross Validation {}/{} ==\n'.format(cvi, n_cvinner - 1))
             glist_train = agraphs[train]
             glist_test = agraphs[test]
 
             method.learning(lr=lr, momentum=momentum, num_epochs=n_epochs, gfile_list_train=glist_train,
-                        gfile_list_test=glist_test, batch_size=batch_size, patience=patience, save_results=True)
+                            gfile_list_test=glist_test, batch_size=batch_size, patience=patience, save_results=True)
 
             if notcut_graphs is not None:
                 print('\nCutting')
@@ -118,14 +128,15 @@ if __name__ == '__main__':
                 method.test_thresholds(gfile_list_test=glist_test, gfile_list_notcut_test=glist_notcut_test,
                                        threshold_range=th_range)
 
-            method.save_model(name=model_name+'_'+'cv'+str(cvi))
+            method.save_model(name=model_name + '_' + 'cv' + str(cvi))
 
         method.save_results()
         cv_time = time.time() - start_time
 
-        print('Cross Validation complete in {:.0f}h {:.0f}m {:.0f}s'.format(cv_time // 3600, (cv_time % 3600)//60, (cv_time % 3600)%60))
+        print('Cross Validation complete in {:.0f}h {:.0f}m {:.0f}s'.format(cv_time // 3600, (cv_time % 3600) // 60,
+                                                                            (cv_time % 3600) % 60))
 
-        with open(working_path+'/results/' + model_name + '.json', 'r') as f:
+        with open(working_path + '/results/' + model_name + '.json', 'r') as f:
             results = json.load(f)
 
         mean_acc = np.mean(results['best_acc'])
@@ -152,7 +163,7 @@ if __name__ == '__main__':
                 print('Training n°', n, ' | Best threshold:', th)
                 if isinstance(th, list):
                     th = np.random.choice(th)
-                method.save_params(best_threshold=th, name=model_name + '_cv' + str(cvi))
+                method.save_params(best_threshold=int(th), name=model_name + '_cv' + str(n))
             for th in best_thresholds:
                 if isinstance(th, list):
                     best_thresholds += th
