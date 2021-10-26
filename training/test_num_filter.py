@@ -70,7 +70,7 @@ if __name__ == '__main__':
     print('graph loaded')
 
     #Test Hyperparameter
-    for nfilter in [72, 80, 96, 128]:
+    for nfilter in [16, 32, 128]:
         print('# -- ' * 6 + '#')
         print('\t Test Hyperparameter:')
         print('\t Number of Filters = ', nfilter)
