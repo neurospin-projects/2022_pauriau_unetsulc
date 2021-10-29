@@ -46,7 +46,7 @@ Il faut créer un fichier _parameters.json_ de la forme :\
 &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;} \
 } \
 \
-Puis, il faut lancer la commande `python main.py` ! \
+Puis, il faut lancer la commande `python main.py` dans le conteneur singularity de brainvisa ! \
 L'option `-p` permet de spécifier le chemin vers le _fichier parameters.json_ s'il ne se trouve pas dans le même dossier que le programme `main.py`.  \
 \
 NB : Les dictionnaire dict_model et dict_trained_model n'ont pas besoin de présenter toutes les clés, dans ce cas, les valeurs par défaut sont implémentées (indiquérs juste au-dessous).
