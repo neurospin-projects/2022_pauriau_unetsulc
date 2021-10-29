@@ -2,7 +2,7 @@
 
 Ce programme permet de réaliser l'apprentissage du modèle UNET-3D pour la labellisation automatique des sillons corticaux (modèle dans brainvisa).
 Deux options d'apprentissage sont possibles : un apprentissage complet ou un transfert d'apprentissage à partir d'un modèle déjà entraîné.
-Dans le second cas, seul la dernière couche convolutionnelle est entraînée (final_conv). \
+Dans le second cas, seul la dernière couche convolutionnelle est entraînée (final_conv).
 
 Le dossier comporte plusieurs fichiers:
 * Le fichier `pattern_class.py` qui contient la classe `UnetPatternSulciLabelling`
@@ -19,7 +19,7 @@ Le dossier comporte plusieurs fichiers:
 * 4ème étape : enregistrement des résultats
 
 ###### Entrées
-Il faut créer un fichier _parameters.json_ de la forme : \
+Il faut créer un fichier _parameters.json_ de la forme :\
 
 {\
 "**working_path**": $PATH$, *str: chemin enregistrement des résultats*\
@@ -27,7 +27,6 @@ Il faut créer un fichier _parameters.json_ de la forme : \
 "**cohort_name**": "Chimp_3T", *str: le nom de la cohort*\
 "**hemi**": "L", *str: L ou R pour l'hémisphère*\
 "**path_to_cohort**": $PATH$, *str: chemin où est stocké le fichier json de la cohort*\
-"**translation_file**": $PATH$, *fichier .trl*\
 "**batch_size**": 1, *int*\
 "**lr**": 1e-2, *float: learning rate*\
 "**momentum**": 0.9, *float*\
@@ -63,3 +62,17 @@ Le programme enregistre dans les répertoires :
 NB: pour utiliser tensorboard, il faut :
 1. installer tensorboard dans l'image singularity de brainvisa : `pip3 install tensorboard`
 2. lancer le main dans le package tensorboard (pour voir le chemin, lancer la commande `pip3 show tensorboard`) avec la commande `python3 main.py --logdir $PATH$` avec path le chemin vers le dossier du modèle dans le répertoire tensorboard.
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+Le dossier `tools` comporte :
+* un script `select_subject.py` qui contient des fonctions pour la création des cohortes (fichier.json). \
+* un script `create_sulcal_root_color.py` qui permet la création d'un fichier .hie pour modifier la couleur des sillons dans Anatomist \
+
+Le dossier `create_figures` comporte :
+* un script `plot_cohort_features.py` qui permet de tracer les figures avec la taille et l'occurences des sillons dans la cohorte \
+* un script `plot_results.py` qui permet de tracer un ensemble de courbes de l'apprentissage et de l'évaluation d'un modèle \
+* un script `model_comparison.py` qui permet de tracer un ensemble de courbes pour comparer l'apprentissage et l'évaluation de 2 modèles entraînés sur la même cohorte \
+
+Le dossier `training` et `transfer_learning` contiennent les anciens scripts, à se réferrer si jamais la nouvelle version ne fonctionne pas car cette dernière n'a pas beaucoup été testée !
